@@ -13,6 +13,9 @@ Channel.fromPath(params.pheno)
     .ifEmpty { exit 1, "SNPs of interest file not found: ${params.pheno}" }
     .set { pheno }
 
+// Get as many processors as machine has
+int threads = Runtime.getRuntime().availableProcessors()
+
 process vcf2plink {
     publishDir "${params.outdir}/vcf2plink", mode: 'copy'
 
@@ -54,7 +57,6 @@ process plink {
     input:
     set file(bed), file(bim), file(fam) from plink
     file snps from snps
-    file pheno from pheno
 
     output:
     file('*') into phewas
@@ -65,18 +67,20 @@ process plink {
     """
 }
 
-process plots {
+process phewas {
     publishDir "${params.outdir}/phewas", mode: 'copy'
+    cpus threads
 
     input:
     file genotypes from phewas
+    file pheno from pheno
 
     output:
     file("*") into plots
 
     script:
     """
-    phewas.R
+    phewas.R $pheno ${task.cpus}
     """
 }
 

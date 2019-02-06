@@ -2,6 +2,8 @@
 
 library(PheWAS)
 
+args = commandArgs(trailingOnly=TRUE)
+
 ########################################
 ### Data input
 ########################################
@@ -14,8 +16,7 @@ names(genotypes)[1]="id"
     # 1,T,10
     # 2,F,NA
     # 3,F,6
-icd9.codes <- read.csv("id.icd9.count.csv",colClasses=c("integer","character","integer"))
-
+id.icd9.count <- read.csv(args[1],colClasses=c("integer","character","integer"))
 
 ########################################
 ### Data transformation
@@ -23,16 +24,15 @@ icd9.codes <- read.csv("id.icd9.count.csv",colClasses=c("integer","character","i
 # Create the PheWAS code table- translates the icd9s, adds exclusions, and reshapes to a wide format
 phenotypes=createPhewasTable(id.icd9.count)
 
-
 ########################################
 ### Run the PheWAS
 ########################################
 # TODO: add multithreaded approach, set cores based on cmd line input
-results=phewas(phenotypes,genotypes,cores=1,significance.threshold=c("bonferroni"))
+#results=phewas(phenotypes,genotypes,cores=2,significance.threshold=c("bonferroni"))
+results=phewas(phenotypes=phenotypes,genotypes=genotypes,min.records=0,cores=args[2],significance.threshold=c("bonferroni"))
 
 #Add PheWAS descriptions
 results_d=addPhecodeInfo(results)
-
 
 ########################################
 ### Plotting
