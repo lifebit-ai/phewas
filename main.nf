@@ -85,38 +85,20 @@ process phewas {
 }
 
 
-// process visualisations {
-//     publishDir "${params.outdir}/Visualisations", mode: 'copy'
+process visualisations {
+    publishDir "${params.outdir}/Visualisations", mode: 'copy'
 
-//     container 'lifebitai/vizjson:latest'
+    container 'lifebitai/vizjson:latest'
 
-//     input:
-//     set file(qq_dfam), file(qq_poo), file(qq_tdt), file(tdt) from plots
+    input:
+    file man from plots
 
-//     output:
-//     file '.report.json' into viz
+    output:
+    file '.report.json' into viz
 
-//     script:
-//     """
-//     for image in \$(ls *png); do
-//         prefix="\${image%.*}"
-//         if [[ \$prefix == "QQdfam" ]]; then
-//             title="QQ Plot From The Sib-TDT Test To Show Family-based Disease Traits"
-//         elif [ \$prefix == "QQpoo" ]; then
-//             title="QQ Plot For The Parent of Orgin Analysis"
-//         elif [ \$prefix == "QQtdt" ]; then
-//             title="QQ Plot From The Transmission Disequilibrium Test To Show Family-based Associations"
-//         elif [ \$prefix == "tdt" ]; then
-//             title="Manhattan Plot From The Transmission Disequilibrium Test To Show Family-based Associations"
-//         fi
-//         img2json.py "${params.outdir}/plots/\$image" "\$title" \${prefix}.json
-//     done
-    
-//     #table=\$(ls *.txt)
-//     #prefix=\${table%.*}
-//     #tsv2csv.py < \${prefix}.txt > \${prefix}.csv
-//     #csv2json.py \${prefix}.csv "Combined Results" 'results-combined.json'
-    
-//     combine_reports.py .
-//     """
-// }
+    script:
+    """
+    img2json.py "${params.outdir}/phewas/$man" "Phenotype Manhattan Plot" ${man}.json    
+    combine_reports.py .
+    """
+}
