@@ -76,7 +76,7 @@ process phewas {
     file pheno from pheno
 
     output:
-    file("*") into plots
+    set file("*.png"), file("*.csv") into plots
 
     script:
     """
@@ -91,14 +91,15 @@ process visualisations {
     container 'lifebitai/vizjson:latest'
 
     input:
-    file man from plots
+    set file(man), file(res) from plots
 
     output:
     file '.report.json' into viz
 
     script:
     """
-    img2json.py "${params.outdir}/phewas/$man" "Phenotype Manhattan Plot" ${man}.json    
+    img2json.py "${params.outdir}/phewas/$man" "Phenotype Manhattan Plot" ${man}.json  
+    csv2json.py $res "Top 100 most significant results by p-value" ${res}.json
     combine_reports.py .
     """
 }
