@@ -18,6 +18,7 @@ RUN apt-get install -t unstable -y libssl-dev
 RUN Rscript -e "install.packages('devtools')"
 RUN Rscript -e "library(devtools)"
 RUN Rscript -e "devtools::install_github('PheWAS/PheWAS')"
+RUN apt-get install -y procps
 
 RUN mkdir /data && \
     mkdir /data/scripts/

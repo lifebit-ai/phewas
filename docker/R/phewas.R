@@ -27,9 +27,7 @@ phenotypes=createPhewasTable(id.icd9.count)
 ########################################
 ### Run the PheWAS
 ########################################
-# TODO: add multithreaded approach, set cores based on cmd line input
-#results=phewas(phenotypes,genotypes,cores=2,significance.threshold=c("bonferroni"))
-results=phewas(phenotypes=phenotypes,genotypes=genotypes,min.records=0,cores=args[2],significance.threshold=c("bonferroni"))
+results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(args[2]),significance.threshold=c("bonferroni"))
 
 #Add PheWAS descriptions
 results_d=addPhecodeInfo(results)
