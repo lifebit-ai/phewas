@@ -1,11 +1,23 @@
 #!/usr/bin/env nextflow
 
-Channel.fromPath(params.vcf)
-    .ifEmpty { exit 1, "VCF file not found: ${params.vcf}" }
-    .set { vcf }
 Channel.fromPath(params.data)
     .ifEmpty { exit 1, "FAM file (w/ header) containing phenotype data not found: ${params.data}" }
     .set { data }
+if (params.vcf) {
+    Channel.fromPath(params.vcf)
+    .ifEmpty { exit 1, "VCF file not found: ${params.vcf}" }
+    .set { vcf }
+}
+if (params.bed) {
+    Channel.fromPath(params.bed)
+        .ifEmpty { exit 1, "PLINK binary pedigree file not found: ${params.bed}" }
+        .set { bed }
+}
+if (params.bim) {
+    Channel.fromPath(params.bim)
+        .ifEmpty { exit 1, "PLINK BIM file not found: ${params.bim}" }
+        .set { bim }
+}
 Channel.fromPath(params.snps)
     .ifEmpty { exit 1, "SNPs of interest file not found: ${params.snps}" }
     .set { snps }
@@ -16,7 +28,8 @@ Channel.fromPath(params.pheno)
 // Get as many processors as machine has
 int threads = Runtime.getRuntime().availableProcessors()
 
-process vcf2plink {
+if (params.data && params.vcf) {
+    process vcf2plink {
     publishDir "${params.outdir}/vcf2plink", mode: 'copy'
 
     input:
@@ -33,6 +46,28 @@ process vcf2plink {
     rm plink.fam
     mv $fam plink.fam
     """
+    }
+} else if (params.bed && params.bim && params.data) {
+    process preprocess_plink {
+
+    input:
+    file bed from bed
+    file bim from bim
+    file fam from data
+
+    output:
+    set file('*.bed'), file('*.bim'), file('*.fam') into plink
+
+    script:
+    """
+    sed '1d' $fam > tmpfile; mv tmpfile $fam
+    mv $fam plink.fam
+    mv $bed plink.bed
+    mv $bim plink.bim
+    """
+    }
+} else {
+    exit 1, "\nPlease specify either:\n1) `--vcf` AND `--data` inputs\nOR\n2) `--bed` AND `--bim` AND `--data` inputs"
 }
 
 // process filter {
