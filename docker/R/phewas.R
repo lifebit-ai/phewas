@@ -32,9 +32,9 @@ results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(args[2
 # Add PheWAS descriptions
 results_d=addPhecodeInfo(results)
 
-# Write top 100 most significant results to csv
-top_res=results_d[order(results_d$p)[1:100],]
-write.csv(top_res, file = "top_results.csv", row.names=FALSE)
+# Write results to csv ordered by significance
+top_res=results_d[order(results_d$p),]
+write.csv(top_res, file="phewas_results.csv", row.names=FALSE)
 
 ########################################
 ### Plotting

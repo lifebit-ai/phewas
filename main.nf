@@ -99,7 +99,7 @@ process visualisations {
     script:
     """
     img2json.py "${params.outdir}/phewas/$man" "Phenotype Manhattan Plot" ${man}.json  
-    csv2json.py $res "Top 100 most significant results by p-value" ${res}.json
+    csv2json.py $res "Results from PheWAS analysis ordered by significance" ${res}.json
     combine_reports.py .
     """
 }
