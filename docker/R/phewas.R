@@ -1,22 +1,50 @@
 #!/usr/bin/env Rscript
 
-library(PheWAS)
-
+###################################
+# Perform PheWAS analysis & generate Manhattan plot
 args = commandArgs(trailingOnly=TRUE)
+# Requires:
+pheno_file <- args[1] # file
+n_cpus <- args[2] # int
+pheno_codes <- args[3] # string eg `doid` to convert DOID codes -> icd9
+# also requires `mappings.csv` file in pwd
+###################################
+
+library(PheWAS)
 
 ########################################
 ### Data input
 ########################################
+# load genotypes
 genotypes=read.table("r_genotypes.raw",header=TRUE)[,c(-2:-6)]
 names(genotypes)[1]="id"
 
+# load icd9 data
+id.icd9.count <- read.csv(pheno_file,colClasses=c("integer","character","integer"))
 # TODO: add option to import something like this:
-    # example phenotype.csv:
-    # id,T2D,max.a1c
-    # 1,T,10
-    # 2,F,NA
-    # 3,F,6
-id.icd9.count <- read.csv(args[1],colClasses=c("integer","character","integer"))
+  # example phenotype.csv:
+  # id,T2D,max.a1c
+  # 1,T,10
+  # 2,F,NA
+  # 3,F,6
+
+# if using DOID codes convert to icd9
+if (pheno_codes == "doid") {
+  mappings <- read.csv("mappings.csv")
+  # remove prefix
+  mappings$curie_id <- gsub("^DOID:", "", mappings$curie_id)
+  mappings$mapped_curie <- gsub("^ICD9CM:", "", mappings$mapped_curie)
+  # remove uncessary cols
+  keeps <- c("curie_id", "mapped_curie")
+  mappings <- mappings[keeps]
+  # rename cols
+  names(mappings) <- c("doid","icd9")
+  # replace DOID codes with icd9
+  id.icd9.count$icd9 <- with(mappings, icd9[match(id.icd9.count$icd9, doid)])
+  # remove NA values
+  id.icd9.count <- id.icd9.count[complete.cases(id.icd9.count), ]
+  # id.icd9.count$doid <-  mappings[match(id.icd9.count$icd9, mappings$icd9), 1, drop=F]
+}
 
 ########################################
 ### Data transformation
@@ -27,7 +55,7 @@ phenotypes=createPhewasTable(id.icd9.count)
 ########################################
 ### Run the PheWAS
 ########################################
-results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(args[2]),significance.threshold=c("bonferroni"))
+results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),significance.threshold=c("bonferroni"))
 
 # Add PheWAS descriptions
 results_d=addPhecodeInfo(results)
@@ -44,14 +72,3 @@ write.csv(all_res, file="top_results.csv", row.names=FALSE)
 png("phewas_man.png", width = 1000, height = 750, units = 'px', pointsize=16)
 phewasManhattan(results, annotate.angle=0)
 dev.off()
-
-
-
-
-
-
-
-
-
-
-

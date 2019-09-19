@@ -24,6 +24,9 @@ Channel.fromPath(params.snps)
 Channel.fromPath(params.pheno)
     .ifEmpty { exit 1, "SNPs of interest file not found: ${params.pheno}" }
     .set { pheno }
+Channel.fromPath(params.mapping)
+    .ifEmpty { exit 1, "Mapping file not found: ${params.mapping}" }
+    .set { mapping }
 
 // Get as many processors as machine has
 int threads = Runtime.getRuntime().availableProcessors()
@@ -109,13 +112,14 @@ process phewas {
     input:
     file genotypes from phewas
     file pheno from pheno
+    file mapping from mapping
 
     output:
     set file("phewas_results.csv"), file("top_results.csv"), file("*.png") into plots
 
     script:
     """
-    phewas.R $pheno ${task.cpus}
+    phewas.R $pheno ${task.cpus} $pheno_codes
     """
 }
 
