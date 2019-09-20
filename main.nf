@@ -1,12 +1,18 @@
 #!/usr/bin/env nextflow
 
-Channel.fromPath(params.data)
+if (params.data) {
+    Channel.fromPath(params.data)
     .ifEmpty { exit 1, "FAM file (w/ header) containing phenotype data not found: ${params.data}" }
     .set { data }
-if (params.vcf) {
-    Channel.fromPath(params.vcf)
-    .ifEmpty { exit 1, "VCF file not found: ${params.vcf}" }
-    .set { vcf }
+}
+if (params.vcf_file) {
+    Channel.fromPath(params.vcf_file)
+           .ifEmpty { exit 1, "VCF file containing  not found: ${params.vcf_file}" }
+           .into { vcf_file; vcfs_to_split }
+    vcfs_to_split
+        .splitCsv(header: true)
+        .map{ row -> [file(row.vcf)] }
+        .set { vcfs }
 }
 if (params.bed) {
     Channel.fromPath(params.bed)
@@ -31,43 +37,95 @@ Channel.fromPath(params.mapping)
 // Get as many processors as machine has
 int threads = Runtime.getRuntime().availableProcessors()
 
-if (params.data && params.vcf) {
-    process vcf2plink {
-    publishDir "${params.outdir}/vcf2plink", mode: 'copy'
+if (params.vcf_file) {
+    process file_preprocessing {
+        publishDir 'results'
+        container 'lifebitai/preprocess_gwas:latest'
 
-    input:
-    file vcf from vcf
-    file fam from data
+        input:
+        file vcfs from vcfs.collect()
+        file vcf_file from vcf_file
 
-    output:
-    set file('*.bed'), file('*.bim'), file('*.fam') into plink
+        output:
+        file 'merged.vcf' into vcf_plink
+        file 'sample.phe' into data
 
-    script:
-    """
-    sed '1d' $fam > tmpfile; mv tmpfile $fam
-    plink --vcf $vcf
-    rm plink.fam
-    mv $fam plink.fam
-    """
+        script:
+        """
+        # iterate through urls in csv replacing s3 path with the local one
+        urls="\$(tail -n+2 $vcf_file | awk -F',' '{print \$2}')"
+        for url in \$(echo \$urls); do
+            vcf="\${url##*/}"
+            sed -i -e "s~\$url~\$vcf~g" $vcf_file
+        done
+        # bgzip uncompressed vcfs
+        for vcf in \$(tail -n+2 $vcf_file | awk -F',' '{print \$2}'); do
+            if [ \${vcf: -4} == ".vcf" ]; then
+                    bgzip -c \$vcf > \${vcf}.gz
+                    sed -i "s/\$vcf/\${vcf}.gz/g" $vcf_file 
+            fi
+        done
+        # remove any prexisting columns for sex 
+        if grep -Fq "SEX" $vcf_file; then
+            awk -F, -v OFS=, 'NR==1{for (i=1;i<=NF;i++)if (\$i=="SEX"){n=i-1;m=NF-(i==NF)}} {for(i=1;i<=NF;i+=1+(i==n))printf "%s%s",\$i,i==m?ORS:OFS}' $vcf_file > tmp.csv && mv tmp.csv $vcf_file
+        fi
+        # determine sex of each individual from VCF file & add to csv file
+        echo 'SEX' > sex.txt
+        for vcf in \$(tail -n+2 $vcf_file | awk -F',' '{print \$2}'); do
+            bcftools index -f \$vcf
+            SEX="\$(bcftools plugin vcf2sex \$vcf)"
+            if [[ \$SEX == *M ]]; then
+                    echo "1" >> sex.txt
+            elif [ \$SEX == *F ]]; then
+                    echo "2" >> sex.txt
+            fi
+        done
+        # make fam file & merge vcfs
+        paste -d, sex.txt $vcf_file > tmp.csv && mv tmp.csv $vcf_file
+        make_fam2.py $vcf_file
+        vcfs=\$(tail -n+2 $vcf_file | awk -F',' '{print \$3}')
+        bcftools merge --force-samples \$vcfs > merged.vcf
+        """
+    }
+
+    process plink {
+        publishDir "${params.output_dir}/plink", mode: 'copy'
+
+        input:
+        file vcf from vcf_plink
+        file fam from data
+
+        output:
+        set file('*.bed'), file('*.bim'), file('*.fam') into plink
+
+        script:
+        """
+        sed '1d' $fam > tmpfile; mv tmpfile $fam
+        # remove contigs eg GL000229.1 to prevent errors
+        sed -i '/^GL/ d' $vcf
+        plink --vcf $vcf --make-bed
+        rm plink.fam
+        mv $fam plink.fam
+        """
     }
 } else if (params.bed && params.bim && params.data) {
     process preprocess_plink {
 
-    input:
-    file bed from bed
-    file bim from bim
-    file fam from data
+        input:
+        file bed from bed
+        file bim from bim
+        file fam from data
 
-    output:
-    set file('*.bed'), file('*.bim'), file('*.fam') into plink
+        output:
+        set file('*.bed'), file('*.bim'), file('*.fam') into plink
 
-    script:
-    """
-    sed '1d' $fam > tmpfile; mv tmpfile $fam
-    mv $fam plink.fam
-    mv $bed plink.bed
-    mv $bim plink.bim
-    """
+        script:
+        """
+        sed '1d' $fam > tmpfile; mv tmpfile $fam
+        mv $fam plink.fam
+        mv $bed plink.bed
+        mv $bim plink.bim
+        """
     }
 } else {
     exit 1, "\nPlease specify either:\n1) `--vcf` AND `--data` inputs\nOR\n2) `--bed` AND `--bim` AND `--data` inputs"
@@ -87,7 +145,6 @@ if (params.data && params.vcf) {
 //     plink --bfile plink --mind 0.1 --geno 0.1 --maf 0.05 --hwe 0.000001 --me 0.05 0.1 --tdt --ci 0.95 --out results1
 //     """
 // }
-
 
 process recode {
     publishDir "${params.outdir}/plink", mode: 'copy'
