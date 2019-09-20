@@ -1,5 +1,9 @@
 #!/usr/bin/env nextflow
 
+// helper function
+def snps() {
+  !params.snps.contains("no_snps.txt")
+}
 Channel.fromPath(params.data)
     .ifEmpty { exit 1, "FAM file (w/ header) containing phenotype data not found: ${params.data}" }
     .set { data }
@@ -18,9 +22,11 @@ if (params.bim) {
         .ifEmpty { exit 1, "PLINK BIM file not found: ${params.bim}" }
         .set { bim }
 }
-Channel.fromPath(params.snps)
+if ( snps() ) {
+    Channel.fromPath(params.snps)
     .ifEmpty { exit 1, "SNPs of interest file not found: ${params.snps}" }
     .set { snps }
+}
 Channel.fromPath(params.pheno)
     .ifEmpty { exit 1, "SNPs of interest file not found: ${params.pheno}" }
     .set { pheno }
@@ -89,7 +95,7 @@ if (params.data && params.vcf) {
 // }
 
 
-process plink {
+process recode {
     publishDir "${params.outdir}/plink", mode: 'copy'
 
     input:
@@ -100,8 +106,9 @@ process plink {
     file('*') into phewas
 
     script:
+    extract = snps() ? "--extract $snps" : ""
     """
-    plink --recodeA --bfile plink --extract $snps --out r_genotypes
+    plink --recodeA --bfile ${bed.baseName} --out r_genotypes $extract
     """
 }
 
@@ -119,7 +126,7 @@ process phewas {
 
     script:
     """
-    phewas.R $pheno ${task.cpus} $pheno_codes
+    phewas.R $pheno ${task.cpus} $params.pheno_codes
     """
 }
 
