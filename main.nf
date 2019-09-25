@@ -89,7 +89,8 @@ if (params.vcf_file) {
     }
 
     process plink {
-        publishDir "${params.output_dir}/plink", mode: 'copy'
+        publishDir "${params.outdir}/plink", mode: 'copy'
+        container 'alliecreason/plink:1.90'
 
         input:
         file vcf from vcf_plink
@@ -132,7 +133,7 @@ if (params.vcf_file) {
 }
 
 // process filter {
-//     publishDir "${params.output_dir}/filter", mode: 'copy'
+//     publishDir "${params.outdir}/filter", mode: 'copy'
 
 //     input:
 //     set file(bed), file(bim), file(fam) from plink
