@@ -28,7 +28,7 @@ Channel.fromPath(params.snps)
     .ifEmpty { exit 1, "SNPs of interest file not found: ${params.snps}" }
     .set { snps }
 Channel.fromPath(params.pheno)
-    .ifEmpty { exit 1, "SNPs of interest file not found: ${params.pheno}" }
+    .ifEmpty { exit 1, "Phenotype file not found: ${params.pheno}" }
     .set { pheno }
 Channel.fromPath(params.mapping)
     .ifEmpty { exit 1, "Mapping file not found: ${params.mapping}" }
