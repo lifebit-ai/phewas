@@ -24,11 +24,13 @@ if (params.bim) {
         .ifEmpty { exit 1, "PLINK BIM file not found: ${params.bim}" }
         .set { bim }
 }
-Channel.fromPath(params.snps)
+if (params.snps) {
+    Channel.fromPath(params.snps)
     .ifEmpty { exit 1, "SNPs of interest file not found: ${params.snps}" }
     .set { snps }
-Channel.fromPath(params.pheno)
-    .ifEmpty { exit 1, "Phenotype file not found: ${params.pheno}" }
+}
+Channel.fromPath(params.pheno_file)
+    .ifEmpty { exit 1, "Phenotype file not found: ${params.pheno_file}" }
     .set { pheno }
 Channel.fromPath(params.mapping)
     .ifEmpty { exit 1, "Mapping file not found: ${params.mapping}" }
@@ -48,7 +50,7 @@ if (params.vcf_file) {
 
         output:
         file 'merged.vcf' into vcf_plink
-        file 'sample.phe' into data
+        file 'sample.phe' into data, data2
 
         script:
         """
@@ -97,7 +99,7 @@ if (params.vcf_file) {
         file fam from data
 
         output:
-        set file('*.bed'), file('*.bim'), file('*.fam') into plink
+        set file('*.bed'), file('*.bim'), file('*.fam') into plink, plink2
 
         script:
         """
@@ -118,7 +120,7 @@ if (params.vcf_file) {
         file fam from data
 
         output:
-        set file('*.bed'), file('*.bim'), file('*.fam') into plink
+        set file('*.bed'), file('*.bim'), file('*.fam') into plink, plink2
 
         script:
         """
@@ -147,20 +149,39 @@ if (params.vcf_file) {
 //     """
 // }
 
+if (!params.snps) {
+    process get_snps {
+        publishDir 'results', mode: 'copy'
+        container 'alliecreason/plink:1.90'
+
+        input:
+        set file(bed), file(bim), file(fam) from plink
+        file pheno_file from data2
+
+        output:
+        file("snps.txt") into snps
+
+        script:
+        """
+        plink --bed $bed --bim $bim --fam $fam --pheno $pheno_file --pheno-name $params.pheno --threads ${task.cpus} --assoc --out out
+        awk -F' ' '{if(\$9<${params.snp_threshold}) print \$2}' out.assoc > snps.txt
+        """
+    }
+}
+
 process recode {
     publishDir "${params.outdir}/plink", mode: 'copy'
 
     input:
-    set file(bed), file(bim), file(fam) from plink
+    set file(bed), file(bim), file(fam) from plink2
     file snps from snps
 
     output:
     file('*') into phewas
 
     script:
-    extract = params.snps.contains("no_snps.txt") ? "" : "--extract $snps"
     """
-    plink --recodeA --bfile ${bed.baseName} --out r_genotypes $extract
+    plink --recodeA --bfile ${bed.baseName} --out r_genotypes --extract $snps
     """
 }
 
