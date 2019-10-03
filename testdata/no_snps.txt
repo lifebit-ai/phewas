@@ -1,0 +1,3 @@
+This is a dummy file
+If `snps` of interest is not set/changed this file will be loaded as input to the `recode` process so that Nextflow doesn't complain
+It will not be used in the analysis

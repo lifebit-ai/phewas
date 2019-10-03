@@ -19,7 +19,7 @@ library(PheWAS)
 genotypes=read.table("r_genotypes.raw",header=TRUE)[,c(-2:-6)]
 names(genotypes)[1]="id"
 
-# load icd9 data
+# load the pheno data
 id.icd9.count <- read.csv(pheno_file,colClasses=c("integer","character","integer"))
 # TODO: add option to import something like this:
   # example phenotype.csv:
@@ -40,9 +40,11 @@ if (pheno_codes == "doid") {
   # rename cols
   names(mappings) <- c("doid","icd9")
   # replace DOID codes with icd9
-  id.icd9.count$icd9 <- with(mappings, icd9[match(id.icd9.count$icd9, doid)])
+  id.icd9.count$doid <- with(mappings, icd9[match(id.icd9.count$doid, doid)])
+  # rename DOID col
+  names(id.icd9.count)[names(id.icd9.count) == 'doid'] <- 'icd9'
   # remove NA values
-  id.icd9.count <- id.icd9.count[complete.cases(id.icd9.count), ]
+  #id.icd9.count <- id.icd9.count[complete.cases(id.icd9.count), ]
   # id.icd9.count$doid <-  mappings[match(id.icd9.count$icd9, mappings$icd9), 1, drop=F]
 }
 
@@ -72,3 +74,4 @@ write.csv(all_res, file="top_results.csv", row.names=FALSE)
 png("phewas_man.png", width = 1000, height = 750, units = 'px', pointsize=16)
 phewasManhattan(results, annotate.angle=0)
 dev.off()
+
