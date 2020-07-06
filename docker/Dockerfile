@@ -1,33 +1,6 @@
-FROM rocker/r-base
+FROM lifebitai/phewas@sha256:359d5028fb441b6a014137b64c5eaca1a0409c8a24ed1ff3e3b7d90dc07631cc
+# See OG Dockerfile here: https://github.com/lifebit-ai/phewas/blob/8352b4c8c26ca086862eba0b4cd2d5c694060d71/docker/Dockerfile
 
-# Metadata
-LABEL description="Docker image containing all dependencies for PheWAS pipeline"
-
-# Maintainer
-LABEL Phil Palmer <phil@lifebit.ai>
-
-# Install plink
-RUN wget http://s3.amazonaws.com/plink1-assets/dev/plink_linux_x86_64.zip && \
-    unzip *.zip && \
-    mv plink /usr/local/bin/
-
-# Install R dependencies
-RUN apt-get update
-RUN apt-get install -t unstable -y libcurl4-openssl-dev
-RUN apt-get install -t unstable -y libssl-dev
-RUN Rscript -e "install.packages('devtools')"
-RUN Rscript -e "library(devtools)"
-RUN Rscript -e "devtools::install_github('PheWAS/PheWAS')"
-RUN apt-get install -y procps
-
-RUN mkdir /data && \
-    mkdir /data/scripts/
-
-COPY ./R/ /data/scripts/
-
-RUN chmod -R u+x /data/scripts
-
-ENV PATH=$PATH:/data/scripts/
-
-WORKDIR /data/scripts/
-
+# Install procps so that Nextflow can poll CPU usage
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get install -y procps && apt-get clean -y
