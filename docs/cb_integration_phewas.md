@@ -4,7 +4,7 @@ CB output needs to be prepared and fed into pheWAS pipeline so users have an end
 
 ## 1. Requirements
 
-According to https://lifebit.gitbook.io/cloudos/pipelines-documentations-and-examples-1/nextflow-pipelines/phewas :
+According to https://lifebit.gitbook.io/cloudos/pipelines-documentations-and-examples-1/nextflow-pipelines/phewas and `main.nf` :
 
 ### 1.1 - Inputs
 
@@ -29,9 +29,12 @@ OR
 
 - **.bed .bim .fam files**
 
+PLUS:
 
-- **PhenoCol** Name of the column in the .fam/VCF_file (i.e SMOKER)
-- **PhenoFile:** Contains DOID to be mapped to ICD9 or ICD10 codes and counts
+- **--pheno_file** CSV file containing phenotypes & the following columns:
+    1. The `id` column contains a unique sample ID for each individual. These IDs are the same as the IDs used in the file for the `vcf_file` parameter.
+    2. The second column can have the value `icd9` or `doid` depending on the disease classification codes used.
+
 ```
 id,doid,count
 1170,3055,4
@@ -45,25 +48,45 @@ id,doid,count
 1170,12385,3
 1170,14239,3
 ```
+
+EITHER:
+- **--pheno** Comma-separated list of phenotypes to be tested (i.e SMOKER)
+- **--snps** File containing relevant SNPs to be tested. One SNP per row.
+```
+rs1002365
+rs1023115
+rs1041676
+rs1048418
+rs10489265
+rs10493582
+rs10493644
+rs10494452
+rs10494464
+```
+
+**Optional**
+
+- **--pheno_codes** pheno codes used for `pheno_file`. Options are `icd9` or `doid` (default = doid)
+- **--snp_threshold** used to extract the top SNPs (default = 0.05)
+
 ### 1.2 - Outputs
+`phewas` folder containing:
+- `phewas_man.png` Manhattan plot
+
+`plink` folder containing:
+- `r_genotypes.raw` contains information from the FAM file with the number of alleles for each given SNP of interest for all individuals (can be loaded into R)
+- `r_genotypes.log` log file detailing the execution of the PLINK command
+
+`vcf2plink` folder containing PLINK binaries:
+- plink.bed binary version of ped or pedigree file
+- plink.bim map file containing variant information
+- plink.fam FAM files contain phenotypic information and how the individuals relate to one another
+
+`Visualisations` directory containing:
+- `.report.json` file used to render the visualisations within CloudOS
 
 ### 1.3 - Scripts
 
 
 # Future work
 
-- [ ] **(1) Automatic inference of sex from genotypic data**
-   - [ ] Check how to do it: 
-      - seXY: https://academic.oup.com/bioinformatics/article/33/4/561/2666346
-      - plink: https://www.cog-genomics.org/plink/1.9/basic_stats#check_sex 
-   - [ ] Create trigget to run this option when no sex in phenoFile or user ask for it (exposing parameter).
-   - [ ] Make a Nextflow process which runs sex inference and adds it to the phenoFile
-
-- [ ] **(2) Branch GWAS processes so that multiple reports can be generated and explored:**
-   - [ ] Modify reporting process so it allows to combine multiple reports in one report
-   - [ ] Modify reporting process so it allows to switch between reports
-
-- [ ] **(3) GWAS post-analysis**
-   - [ ] Add MAGMA & friends to run pathway-analysis
-   - [ ] Add IntAssoPlot https://www.frontiersin.org/articles/10.3389/fgene.2020.00260/full
-   - [ ] PRS within pipeline
