@@ -85,8 +85,42 @@ rs10494464
 `Visualisations` directory containing:
 - `.report.json` file used to render the visualisations within CloudOS
 
-### 1.3 - Scripts
+### 1.3 - Scripts for ET (Extract - Transform)
+**transform_cb_output.R:** Script that takes the cohort browser metadata and transform it into `vcf_list` & produces a file similar to `--pheno_file` format taking info from `ICD10` columns.
+**create_design.R** (Optional) - Script that creates designs matrix if needed.
+**coloc_analysis.R** Script for running colocalization analysis.
+
+## 2. Q&A / Considerations
+1. Do we need to modify `main.nf` so it works with a single aggregated VCF or can we work with individual VCFs?
+2. Should users only use pheWAS with ICD10 columns?
+3. Can I run with multi-level phenotypes? -> Test and if not adapt design_matrix.R
+4. Does the report needs updating?
+
+## 3. Tasks
+- **(1) Prepare aggregate VCFs files**
+    - [ ] Ask Filippo about Question 2 & work with the aggregated VCFs.
+    - [ ] Check that format of Aggregated VCFs is compatible. And rework chromosome and chunks to adapt the pipeline usage to them.
+    - [ ] Add process to merge chunks into single file
+- **(2) Create vcf_list format form CB phenotypic output**
+    - [ ] Merge vcfs.csv with phenotypes and covariates from CB output
+        - [ ] integrate same transformation than for GWAS
+        - [ ] Add vcf paths and covariates + phenotype
+    - 
+- **(3) Create pheno_file capturing ICD10 codes**
+    - [ ] Create long table with ids, icd10, counts 
+        - [ ] make sure icd10 are inside metadata from CB output
+        - [ ] write function to reformat this into a long table
+        - [ ] count how many times is present, if not just set all to 1s
+    - 
+- **(4) Check that works with icd10**
+    - [ ] Run tests with ICD10
+    - [ ] If ICD10 doesn't work, downgrade to ICD9
+- **(5) prepare nextflow processes for integration**
+    - [ ] Refactor script so when aggregated VCFs & CB inputs are given it run subsequent processes, similar to GWAS
+    - [ ] Add Prepare aggregate VCF step
+    - [ ] Add CB output integration
+- **(6) Update nextflow.config and Dockerfile**
+- **(7) Test on CloudOS**
 
 
-# Future work
 
