@@ -96,24 +96,26 @@ rs10494464
 4. Does the report needs updating?
 
 ## 3. Tasks
-- **(1) Prepare aggregate VCFs files**
+- **(1) Prepare aggregate VCFs files & Test data**
     - [ ] Ask Filippo about Question 2 & work with the aggregated VCFs.
     - [ ] Check that format of Aggregated VCFs is compatible. And rework chromosome and chunks to adapt the pipeline usage to them.
     - [ ] Add process to merge chunks into single file
+    - [ ] Create ICD10 columns in metadata from CB
 - **(2) Create vcf_list format form CB phenotypic output**
     - [ ] Merge vcfs.csv with phenotypes and covariates from CB output
         - [ ] integrate same transformation than for GWAS
         - [ ] Add vcf paths and covariates + phenotype
-    - 
 - **(3) Create pheno_file capturing ICD10 codes**
     - [ ] Create long table with ids, icd10, counts 
         - [ ] make sure icd10 are inside metadata from CB output
         - [ ] write function to reformat this into a long table
-        - [ ] count how many times is present, if not just set all to 1s
-    - 
+        - [ ] count how many times is present, if not just set all to 1s 
 - **(4) Check that works with icd10**
     - [ ] Run tests with ICD10
     - [ ] If ICD10 doesn't work, downgrade to ICD9
+- **(5) Refactor report so it looks similar to GWAS report**
+    - [ ] Save plots in png
+    - [ ] Show tables in report
 - **(5) prepare nextflow processes for integration**
     - [ ] Refactor script so when aggregated VCFs & CB inputs are given it run subsequent processes, similar to GWAS
     - [ ] Add Prepare aggregate VCF step
