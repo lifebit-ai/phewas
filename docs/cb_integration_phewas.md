@@ -88,7 +88,6 @@ rs10494464
 ### 1.3 - Scripts for ET (Extract - Transform)
 **transform_cb_output.R:** Script that takes the cohort browser metadata and transform it into `vcf_list` & produces a file similar to `--pheno_file` format taking info from `ICD10` columns.
 **create_design.R** (Optional) - Script that creates designs matrix if needed.
-**coloc_analysis.R** Script for running colocalization analysis.
 
 ## 2. Q&A / Considerations
 1. Do we need to modify `main.nf` so it works with a single aggregated VCF or can we work with individual VCFs?
