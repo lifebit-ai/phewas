@@ -90,19 +90,18 @@ rs10494464
 **create_design.R** (Optional) - Script that creates designs matrix if needed.
 
 ## 2. Q&A / Considerations
-1. Do we need to modify `main.nf` so it works with a single aggregated VCF or can we work with individual VCFs?
+1. It has to work with individual VCFs
 2. Should users only use pheWAS with ICD10 columns?
 3. Can I run with multi-level phenotypes? -> Test and if not adapt design_matrix.R
 4. Does the report needs updating?
 
 ## 3. Tasks
 - **(1) Prepare aggregate VCFs files & Test data**
-    - [ ] Ask Filippo about Question 2 & work with the aggregated VCFs.
-    - [ ] Check that format of Aggregated VCFs is compatible. And rework chromosome and chunks to adapt the pipeline usage to them.
-    - [ ] Add process to merge chunks into single file
+    - [ ] Ask Filippo about Question 2.
+    - [ ] Check that format of Individual VCFs format is compatible. Ask Filippo.
     - [ ] Create ICD10 columns in metadata from CB
 - **(2) Create vcf_list format form CB phenotypic output**
-    - [ ] Merge vcfs.csv with phenotypes and covariates from CB output
+    - [ ] Merge `phewas_vcfs.csv` with phenotypes and covariates from CB output
         - [ ] integrate same transformation than for GWAS
         - [ ] Add vcf paths and covariates + phenotype
 - **(3) Create pheno_file capturing ICD10 codes**
