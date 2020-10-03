@@ -94,6 +94,7 @@ rs10494464
 2. Should users only use pheWAS with ICD10 columns?
 3. Can I run with multi-level phenotypes? -> Test and if not adapt design_matrix.R
 4. Does the report needs updating?
+5. Not all samples might have any ICD10 code at all. 
 
 ## 3. Tasks
 - **(1) Prepare aggregate VCFs files & Test data**

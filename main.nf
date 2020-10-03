@@ -14,6 +14,7 @@ if (params.vcf_file) {
         .map{ row -> [file(row.vcf)] }
         .set { vcfs }
 }
+
 if (params.bed) {
     Channel.fromPath(params.bed)
         .ifEmpty { exit 1, "PLINK binary pedigree file not found: ${params.bed}" }
@@ -133,6 +134,7 @@ if (params.vcf_file) {
 } else {
     exit 1, "\nPlease specify either:\n1) `--vcf` AND `--data` inputs\nOR\n2) `--bed` AND `--bim` AND `--data` inputs"
 }
+
 
 // process filter {
 //     publishDir "${params.outdir}/filter", mode: 'copy'

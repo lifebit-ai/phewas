@@ -1,26 +1,46 @@
 #!/usr/bin/env Rscript
 
-###################################
-# Perform PheWAS analysis & generate Manhattan plot
-args = commandArgs(trailingOnly=TRUE)
-# Requires:
-pheno_file <- args[1] # file
-n_cpus <- args[2] # int
-pheno_codes <- args[3] # string eg `doid` to convert DOID codes -> icd9
-# also requires `mappings.csv` file in pwd
-###################################
+####################
+# Import libraries #
+####################
 
+suppressPackageStartupMessages({
+library(optparse)
+library(data.table)
+library(tidyverse)
 library(PheWAS)
+    })
+
+
+##########################################################
+# Parse arguments                                        
+##########################################################
+
+option_list = list(
+  make_option(c("--pheno_file"), action="store", default='data/cohort_data_phenos_v4.csv', type='character',
+              help="String containing long format table for phenotypes."),
+  make_option(c("--geno_file"), action="store", default='data/cohort_data_phenos_v4.csv', type='character',
+              help="String containing genotypes to be tested."),
+  make_option(c("--n_cpus"), action="store", default='assets/Metadata phenotypes - Mapping file.csv', type='character',
+              help="String containing input metadata for columns in Cohort Browser output."),
+  make_option(c("--pheno_codes"), action="store", default='None', type='character',
+              help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10)."),
+)
+
+pheno_file          = args$pheno_file # file
+geno_file           = args$geno_file
+n_cpus              = integer(args$n_cpus) # int
+pheno_codes         = args$pheno_codes
 
 ########################################
 ### Data input
 ########################################
 # load genotypes
-genotypes=read.table("r_genotypes.raw",header=TRUE)[,c(-2:-6)]
+genotypes=read.table(geno_file,header=TRUE)[,c(-2:-6)]
 names(genotypes)[1]="id"
 
 # load the pheno data
-id.icd9.count <- read.csv(pheno_file,colClasses=c("integer","character","integer"))
+id.icd9.count = read.csv(pheno_file,colClasses=c("integer","character","integer"))
 # TODO: add option to import something like this:
   # example phenotype.csv:
   # id,T2D,max.a1c
@@ -30,29 +50,28 @@ id.icd9.count <- read.csv(pheno_file,colClasses=c("integer","character","integer
 
 # if using DOID codes convert to icd9
 if (pheno_codes == "doid") {
-  mappings <- read.csv("mappings.csv")
+  mappings = read.csv("assets/mappings.csv")
   # remove prefix
-  mappings$curie_id <- gsub("^DOID:", "", mappings$curie_id)
-  mappings$mapped_curie <- gsub("^ICD9CM:", "", mappings$mapped_curie)
+  mappings$curie_id = gsub("^DOID:", "", mappings$curie_id)
+  mappings$mapped_curie = gsub("^ICD9CM:", "", mappings$mapped_curie)
   # remove uncessary cols
-  keeps <- c("curie_id", "mapped_curie")
-  mappings <- mappings[keeps]
+  keeps = c("curie_id", "mapped_curie")
+  mappings = mappings[keeps]
   # rename cols
-  names(mappings) <- c("doid","icd9")
+  names(mappings) = c("doid","icd9")
   # replace DOID codes with icd9
-  id.icd9.count$doid <- with(mappings, icd9[match(id.icd9.count$doid, doid)])
+  id.icd9.count$doid = with(mappings, icd9[match(id.icd9.count$doid, doid)])
   # rename DOID col
-  names(id.icd9.count)[names(id.icd9.count) == 'doid'] <- 'icd9'
+  names(id.icd9.count)[names(id.icd9.count) == 'doid'] = 'icd9'
   # remove NA values
-  #id.icd9.count <- id.icd9.count[complete.cases(id.icd9.count), ]
-  # id.icd9.count$doid <-  mappings[match(id.icd9.count$icd9, mappings$icd9), 1, drop=F]
+  #id.icd9.count = id.icd9.count[complete.cases(id.icd9.count), ]
+  # id.icd9.count$doid =  mappings[match(id.icd9.count$icd9, mappings$icd9), 1, drop=F]
+  phenotypes=createPhewasTable(id.icd9.count)
 }
-
-########################################
-### Data transformation
-########################################
-# Create the PheWAS code table- translates the icd9s, adds exclusions, and reshapes to a wide format
-phenotypes=createPhewasTable(id.icd9.count)
+if (pheno_codes == 'icd10'){
+  icd10_data = read.csv("assets/Phecode_map_v1_2_icd10cm_beta.csv")
+  phenotypes=createPhewasTable(icd10_data)
+}
 
 ########################################
 ### Run the PheWAS
