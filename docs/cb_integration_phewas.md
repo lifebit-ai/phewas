@@ -99,17 +99,17 @@ rs10494464
 - **(1) Prepare aggregate VCFs files & Test data**
     - [ ] Ask Filippo about Question 2.
     - [ ] Check that format of Individual VCFs format is compatible. Ask Filippo.
-    - [ ] Create ICD10 columns in metadata from CB
+    - [x] Create ICD10 columns in metadata from CB
 - **(2) Create vcf_list format form CB phenotypic output**
-    - [ ] Merge `phewas_vcfs.csv` with phenotypes and covariates from CB output
-        - [ ] integrate same transformation than for GWAS
-        - [ ] Add vcf paths and covariates + phenotype
+    - [x] Merge `phewas_vcfs.csv` with phenotypes and covariates from CB output
+        - [x] integrate same transformation than for GWAS
+        - [x] Add vcf paths and covariates + phenotype
 - **(3) Create pheno_file capturing ICD10 codes**
-    - [ ] Create long table with ids, icd10, counts 
-        - [ ] make sure icd10 are inside metadata from CB output
-        - [ ] write function to reformat this into a long table
-        - [ ] count how many times is present, if not just set all to 1s 
-- **(4) Check that works with icd10**
+    - [x] Create long table with ids, icd10, counts 
+        - [x] make sure icd10 are inside metadata from CB output
+        - [x] write function to reformat this into a long table
+        - [x] count how many times is present, if not just set all to 1s. Ended up setting it to 3
+- **(4) Check that pheWAS works with icd10**
     - [ ] Run tests with ICD10
     - [ ] If ICD10 doesn't work, downgrade to ICD9
 - **(5) Refactor report so it looks similar to GWAS report**
