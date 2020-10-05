@@ -17,15 +17,17 @@ library(PheWAS)
 ##########################################################
 
 option_list = list(
-  make_option(c("--pheno_file"), action="store", default='data/cohort_data_phenos_v4.csv', type='character',
+  make_option(c("--pheno_file"), action="store", default='None', type='character',
               help="String containing long format table for phenotypes."),
-  make_option(c("--geno_file"), action="store", default='data/cohort_data_phenos_v4.csv', type='character',
+  make_option(c("--geno_file"), action="store", default='None', type='character',
               help="String containing genotypes to be tested."),
   make_option(c("--n_cpus"), action="store", default='assets/Metadata phenotypes - Mapping file.csv', type='character',
               help="String containing input metadata for columns in Cohort Browser output."),
   make_option(c("--pheno_codes"), action="store", default='None', type='character',
-              help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10)."),
+              help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10).")
 )
+
+args = parse_args(OptionParser(option_list=option_list))
 
 pheno_file          = args$pheno_file # file
 geno_file           = args$geno_file
@@ -36,11 +38,13 @@ pheno_codes         = args$pheno_codes
 ### Data input
 ########################################
 # load genotypes
-genotypes=read.table(geno_file,header=TRUE)[,c(-2:-6)]
+genotypes=read.table(geno_file,header=TRUE)
+genotypes$FID = genotypes$IID
+genotypes = genotypes[,c(-2:-6)]
 names(genotypes)[1]="id"
 
 # load the pheno data
-id.icd9.count = read.csv(pheno_file,colClasses=c("integer","character","integer"))
+id.icd9.count = read.csv(pheno_file,colClasses=c("character","character",'character',"integer"))
 # TODO: add option to import something like this:
   # example phenotype.csv:
   # id,T2D,max.a1c
@@ -69,8 +73,12 @@ if (pheno_codes == "doid") {
   phenotypes=createPhewasTable(id.icd9.count)
 }
 if (pheno_codes == 'icd10'){
-  icd10_data = read.csv("assets/Phecode_map_v1_2_icd10cm_beta.csv")
-  phenotypes=createPhewasTable(icd10_data)
+  icd10_data = read.csv("assets/Phecode_map_v1_2_icd10cm_beta.csv", colClasses=rep("character",8)) %>% select(icd10cm, phecode)
+  id.icd9.count = id.icd9.count %>% 
+    left_join(icd10_data, by=c("code" = "icd10cm")) %>%
+    select(id, phecode, count)
+
+  phenotypes=createPhewasTable(id.icd9.count)
 }
 
 ########################################
