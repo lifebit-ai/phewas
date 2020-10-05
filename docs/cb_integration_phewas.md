@@ -111,17 +111,23 @@ rs10494464
         - [x] write function to reformat this into a long table
         - [x] count how many times is present, if not just set all to 1s. Ended up setting it to 3
 - **(4) Check that pheWAS works with icd10**
-    - [ ] Run tests with ICD10
-    - [ ] If ICD10 doesn't work, downgrade to ICD9
-- **(5) Refactor report so it looks similar to GWAS report**
-    - [ ] Save plots in png
-    - [ ] Show tables in report
+    - [x] Run tests with ICD10
+    - [x] If ICD10 doesn't work, downgrade to ICD9
+
 - **(5) prepare nextflow processes for integration**
     - [ ] Refactor script so when aggregated VCFs & CB inputs are given it run subsequent processes, similar to GWAS
     - [ ] Add Prepare aggregate VCF step
     - [ ] Add CB output integration
 - **(6) Update nextflow.config and Dockerfile**
 - **(7) Test on CloudOS**
+
+## 4, Future Work
+- **(1) Refactor report so it looks similar to GWAS report**
+    - [ ] Save plots in png
+    - [ ] Show tables in report
+- **(2) Fix multiple contrast design and branching of processes**
+- **(3) Add transformations for continuous variables and support to this dtype**
+- **(4) Refactor round**
 
 
 
