@@ -5,7 +5,7 @@ import numpy as np
 import sys
 
 csv_file = sys.argv[1]
-df = pd.read_csv(csv_file, sep=',')
+df = pd.read_csv(csv_file, sep=',', header=0)
 
 # remove vcf column
 del df['vcf']
