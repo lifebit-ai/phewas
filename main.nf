@@ -219,7 +219,7 @@ if (params.cohort_browser_phenofile && params.input_meta_data && params.vcf_file
         done
         # make fam file & merge vcfs
         paste -d, sex.txt $vcf_file > tmp.csv && mv tmp.csv $vcf_file
-        python make_fam.py $vcf_file
+        python make_fam2.py $vcf_file
         vcfs=\$(tail -n+2 $vcf_file | awk -F',' '{print \$3}')
         bcftools merge --force-samples \$vcfs > merged.vcf
         """
@@ -312,7 +312,7 @@ if (params.vcf_file && !params.cohort_browser_phenofile && !params.input_meta_da
         done
         # make fam file & merge vcfs
         paste -d, sex.txt $vcf_file > tmp.csv && mv tmp.csv $vcf_file
-        python make_fam.py $vcf_file
+        python make_fam2.py $vcf_file
         vcfs=\$(tail -n+2 $vcf_file | awk -F',' '{print \$3}')
         bcftools merge --force-samples \$vcfs > merged.vcf
         """
