@@ -13,6 +13,5 @@ nextflow run main.nf --cohort_browser_phenofile "https://gist.githubusercontent.
                      --phenoCol "Specimen type" \
                      --case_group "NOSE" \
                      --mode "case_vs_control_contrast" \
-                     --mapping "assets/Phecode_map_v1_2_icd10cm_beta.csv" \
                      --pheno_codes "icd10"
 ```

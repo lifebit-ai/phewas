@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import pandas as pd
 import numpy as np
@@ -8,8 +8,7 @@ csv_file = sys.argv[1]
 df = pd.read_csv(csv_file, sep=',', header=0)
 
 # remove vcf column
-print(df.columns)
-del df['vcf']
+df = df.drop(['vcf'], axis=1)
 # make Family ID column
 df['FID'] = np.arange(len(df)) + 1
 # rename vcf with IID

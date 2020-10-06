@@ -21,10 +21,10 @@ option_list = list(
               help="String containing long format table for phenotypes."),
   make_option(c("--geno_file"), action="store", default='None', type='character',
               help="String containing genotypes to be tested."),
-  make_option(c("--n_cpus"), action="store", default='assets/Metadata phenotypes - Mapping file.csv', type='character',
+  make_option(c("--n_cpus"), action="store", default='1', type='character',
               help="String containing input metadata for columns in Cohort Browser output."),
   make_option(c("--pheno_codes"), action="store", default='None', type='character',
-              help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10).")
+              help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10, HPO).")
 )
 
 args = parse_args(OptionParser(option_list=option_list))
@@ -44,7 +44,7 @@ genotypes = genotypes[,c(-2:-6)]
 names(genotypes)[1]="id"
 
 # load the pheno data
-id.icd9.count = read.csv(pheno_file,colClasses=c("character","character",'character',"integer"))
+id.code.count = read.csv(pheno_file,colClasses=c("character","character",'character',"integer"))
 # TODO: add option to import something like this:
   # example phenotype.csv:
   # id,T2D,max.a1c
@@ -64,21 +64,30 @@ if (pheno_codes == "doid") {
   # rename cols
   names(mappings) = c("doid","icd9")
   # replace DOID codes with icd9
-  id.icd9.count$doid = with(mappings, icd9[match(id.icd9.count$doid, doid)])
+  id.code.count$doid = with(mappings, icd9[match(id.code.count$doid, doid)])
   # rename DOID col
-  names(id.icd9.count)[names(id.icd9.count) == 'doid'] = 'icd9'
+  names(id.code.count)[names(id.code.count) == 'doid'] = 'icd9'
   # remove NA values
-  #id.icd9.count = id.icd9.count[complete.cases(id.icd9.count), ]
-  # id.icd9.count$doid =  mappings[match(id.icd9.count$icd9, mappings$icd9), 1, drop=F]
-  phenotypes=createPhewasTable(id.icd9.count)
+  #id.code.count = id.code.count[complete.cases(id.code.count), ]
+  # id.code.count$doid =  mappings[match(id.code.count$icd9, mappings$icd9), 1, drop=F]
+  phenotypes=createPhewasTable(id.code.count)
 }
 if (pheno_codes == 'icd10'){
   icd10_data = read.csv("assets/Phecode_map_v1_2_icd10cm_beta.csv", colClasses=rep("character",8)) %>% select(icd10cm, phecode)
-  id.icd9.count = id.icd9.count %>% 
+  id.code.count = id.code.count %>% 
     left_join(icd10_data, by=c("code" = "icd10cm")) %>%
     select(id, phecode, count)
 
-  phenotypes=createPhewasTable(id.icd9.count)
+  phenotypes=createPhewasTable(id.code.count)
+}
+if (pheno_codes == 'hpo'){
+  hpo_data = fread("assets/HPO_to_phecode.txt") %>% select(term_id, phecode)
+  id.code.count$code = str_replace_all(id.code.count$code, "HPO:", "")
+  id.code.count = id.code.count %>% 
+    left_join(hpo_data, by=c("code" = "phecode")) %>%
+    select(id, phecode, count)
+
+  phenotypes=createPhewasTable(id.code.count)
 }
 
 ########################################
