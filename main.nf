@@ -312,7 +312,7 @@ if (params.vcf_file && !params.cohort_browser_phenofile && !params.input_meta_da
         done
         # make fam file & merge vcfs
         paste -d, sex.txt $vcf_file > tmp.csv && mv tmp.csv $vcf_file
-        make_fam2.py $vcf_file
+        make_fam2.R --pheno_file $vcf_file
         vcfs=\$(tail -n+2 $vcf_file | awk -F',' '{print \$3}')
         bcftools merge --force-samples \$vcfs > merged.vcf
         """
@@ -435,21 +435,38 @@ process phewas {
     """
 }
 
-process visualisations {
-    publishDir "${params.outdir}/Visualisations", mode: 'copy'
+process build_report {
+  tag "report"
+  publishDir "${params.outdir}/MultiQC", mode: 'copy', pattern: '*.html'
 
-    container 'lifebitai/vizjson:latest'
+  input:
+  set file(results), file(top_results), file(plot) from plots
 
-    input:
-    set file(phe), file(top), file(man) from plots
+  output:
+  file("multiqc_report.html") into ch_report_outputs
 
-    output:
-    file '.report.json' into viz
+  script:
 
-    script:
-    """
-    img2json.py "${params.outdir}/phewas/$man" "Phenotype Manhattan Plot" ${man}.json  
-    csv2json.py $top "Top results from PheWAS by significance" ${top}.json
-    combine_reports.py .
-    """
+  """
+  mkdir assets/
+  cp /assets/* assets/
+
+  
+  # Generates the report
+  cp /opt/bin/phewas_report.Rmd .
+  cp /opt/bin/DTable.R .
+  cp /opt/bin/sanitise.R .
+  cp /opt/bin/style.css .
+  cp /opt/bin/logo.png .
+  
+
+  Rscript -e "rmarkdown::render('phewas_report.Rmd', params = list(manhattan='${plot}', results='${results}'))"
+  mv phewas_report.html multiqc_report.html
+
+  rm ./DTable.R
+  rm ./sanitise.R
+  rm ./style.css
+  rm ./phewas_report.Rmd
+  """
 }
+

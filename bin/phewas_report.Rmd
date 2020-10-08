@@ -1,0 +1,69 @@
+---
+output: 
+  html_document:
+    code_download: false
+    toc: true                  # table of content true
+    toc_depth: 3               # upto three depths of headings (specified by #, ## and ###)
+    toc_float: true
+    number_sections: true      # if you want number sections at each table header
+    theme: united              # many options for theme, this one is my favorite.
+    highlight: tango           # specifies the syntax highlighting style
+    css: 'style.css'
+params:
+  manhattan:  "phewas_man.png"
+  results: "top_results.csv"
+title: "`r paste0('Genomics England pheWAS Report' , '') `"
+author: ""
+date: ""
+---
+
+
+<img src="logo.png" width=100 style="position:absolute;top:4px;bottom:4px;right:4px;" />
+
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+```{r echo = FALSE}
+source("DTable.R")
+source("sanitise.R")
+
+suppressPackageStartupMessages({
+
+library(magrittr)
+library(DT)
+library(data.table)
+  
+library(htmltools)
+library(stringr)
+library(dplyr)
+library(kableExtra)
+   })
+```
+
+# Visualisations
+
+Plots to explore pheWAS results
+
+```{r}
+figure_number  <- "Figure 1: "
+figure_caption <- "Manhattan plot"
+knitr::include_graphics(params$manhattan, )
+htmltools::tags$figcaption( style = 'caption-side: bottom; text-align: center; font-size: 85%%; color: #71879d',
+                            htmltools::em(figure_number),
+                            htmltools::em(figure_caption))
+```
+
+
+# pheWAS output
+
+```{r}
+table   <- as.data.frame(data.table::fread(params$results))
+colnames(table) <- snakecase::to_snake_case(colnames(table))
+reordered_columns <- c("description","group","phenotype","snp","adjustment","beta",
+                      "se","or","p","type","n_total","n_cases","n_controls","hwe_p",
+                      "allele_freq","n_no_snp","note","bonferroni")
+table <- table[, reordered_columns]
+DTable(table)
+```

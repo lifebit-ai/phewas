@@ -10,7 +10,7 @@ df = pd.read_csv(csv_file, sep=',', header=0)
 # remove vcf column
 df = df.drop(['vcf'], axis=1)
 # make Family ID column
-df['FID'] = np.arange(len(df)) + 1
+df['FID'] = df['sampleid']
 # rename vcf with IID
 df = df.rename({'sampleid': 'IID'}, axis=1)
 # make paternal & maternal ID columns
