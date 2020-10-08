@@ -24,8 +24,6 @@ option_list = list(
               help="String containing input Cohort Browser data."),
   make_option(c("--input_meta_data"), action="store", default='assets/Metadata phenotypes - Mapping file.csv', type='character',
               help="String containing input metadata for columns in Cohort Browser output."),
-  make_option(c("--vcf_list"), action="store", default='None', type='character',
-              help="String with path/URL to vcf files."),
   make_option(c("--phenoCol"), action="store", default='None', type='character',
               help="String representing phenotype that will be used for GWAS comparison(s)."),
   make_option(c("--continuous_var_transformation"), action="store", default='mean', type='character',
@@ -41,7 +39,6 @@ args = parse_args(OptionParser(option_list=option_list))
 
 input_cb_data                 = args$input_cb_data
 input_meta_data               = args$input_meta_data
-vcf_list                      = args$vcf_list
 phenoCol                      = args$phenoCol
 transformation                = args$continuous_var_transformation
 outprefix                     = paste0(args$outprefix, "_")
@@ -246,24 +243,20 @@ cb_data_transformed[['individual_id']] = NULL
 ##################################################
 # Write both files                               #
 ##################################################
-#Create wide icd10_df
-icd10_df = cb_data_transformed[, str_detect(colnames(cb_data_transformed), 'FID|icd')]
-remove_cols = colnames(cb_data_transformed)[str_detect(colnames(cb_data_transformed), 'icd')]
+#Create wide code_df
+code_df = cb_data_transformed[, str_detect(colnames(cb_data_transformed), 'FID|icd|hpo|doid')]
+
+remove_cols = colnames(cb_data_transformed)[str_detect(colnames(cb_data_transformed), 'icd|hpo|doid')]
 old_pheno_col = colnames(cb_data_transformed)[str_detect(colnames(cb_data_transformed), column_to_PHE)]
-cb_data_transformed = cb_data_transformed %>% select(FID, PHE, SEX, everything(), -`platekey`, -`platekey_in_aggregate_vcf`, -IID, -PAT, -MAT, -all_of(remove_cols), -all_of(old_pheno_col))
+cb_data_transformed = cb_data_transformed %>% select(FID, IID, MAT, PAT, PHE, SEX, everything(), -`platekey`, -`platekey_in_aggregate_vcf`, -all_of(remove_cols), -all_of(old_pheno_col))
+write.table(cb_data_transformed, paste0(out_path,'prep_phe_file.phe'), sep='\t',  quote=FALSE, row.names=FALSE)
 
-
-# Join with the vcf list
-vcfs = fread(vcf_list)
-vcfs = vcfs %>% left_join(cb_data_transformed, by=c('sampleid' = 'FID'))
-write.table(vcfs, paste0(out_path,'vcf_samples.csv'), sep=',',  quote=FALSE, row.names=FALSE)
 
 # Generate id_icd_count.csv
-icd10_df = icd10_df %>% pivot_longer(!FID, names_to = "vocabulary", values_to = "code") %>% drop_na()
-icd10_df$count = 3
-icd10_df$vocabulary = 'ICD10CM'
-names(icd10_df)[1]="id"
-write.table(icd10_df, paste0(out_path,'id_icd10_count.csv'), sep=',',  quote=FALSE, row.names=FALSE)
+code_df = code_df %>% pivot_longer(!FID, names_to = "vocabulary", values_to = "code") %>% drop_na() %>% select(-vocabulary)
+code_df$count = 3 # Do research about this column in particular
+names(code_df)[1]="id"
+write.table(code_df, paste0(out_path,'id_code_count.csv'), sep=',',  quote=FALSE, row.names=FALSE)
 
 
 

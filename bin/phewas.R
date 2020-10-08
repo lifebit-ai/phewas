@@ -44,7 +44,7 @@ genotypes = genotypes[,c(-2:-6)]
 names(genotypes)[1]="id"
 
 # load the pheno data
-id.code.count = read.csv(pheno_file,colClasses=c("character","character",'character',"integer"))
+id.code.count = read.csv(pheno_file,colClasses=c("character",'character',"integer"))
 # TODO: add option to import something like this:
   # example phenotype.csv:
   # id,T2D,max.a1c

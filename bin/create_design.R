@@ -27,7 +27,7 @@ build_phenoFiles = function(row, data, design, out_path){
                                 TRUE ~ 0
   )
   # Writes it into file and returns the dataframe in case future steps are added
-  write.table(design_matrix, paste0(out_path,'design_matrix_control_', control,'_case_',case,'.phe'), sep=',',  quote=FALSE, row.names=FALSE)
+  write.table(design_matrix, paste0(out_path,'design_matrix_control_', control,'_case_',case,'.phe'), sep=' ',  quote=FALSE, row.names=FALSE)
   return(design_matrix)
 }
 ###########################
@@ -92,12 +92,12 @@ if (case_group != 'None'){
 
       data$PHE = case_when(data$PHE == case_group ~ 2,
                           TRUE ~ 1)
-      write.table(data, paste0(out_path,'design_matrix_control_all','_case_',case_group,'.phe'), sep=',',  quote=FALSE, row.names=FALSE)
+      write.table(data, paste0(out_path,'design_matrix_control_all','_case_',case_group,'.phe'), sep=' ',  quote=FALSE, row.names=FALSE)
   }
   if (mode == 'case_vs_control_contrast'){
     data$PHE = case_when(data$PHE == case_group ~ 2,
                           TRUE ~ 1)
-    write.table(data, paste0(out_path,'design_matrix_control_all','_case_',case_group,'.phe'), sep=',',  quote=FALSE, row.names=FALSE)
+    write.table(data, paste0(out_path,'design_matrix_control_all','_case_',case_group,'.phe'), sep=' ',  quote=FALSE, row.names=FALSE)
   }
 
   
