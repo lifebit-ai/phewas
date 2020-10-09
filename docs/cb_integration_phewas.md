@@ -1,4 +1,4 @@
-# CB integration with GWAS pipeline
+# CB integration with pheWAS pipeline
 
 CB output needs to be prepared and fed into pheWAS pipeline so users have an end-to-end experience.
 
