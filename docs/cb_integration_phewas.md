@@ -66,7 +66,7 @@ rs10494464
 
 **Optional**
 
-- **--pheno_codes** pheno codes used for `pheno_file`. Options are `icd9` or `doid` (default = doid)
+- **--pheno_codes** pheno codes used for `pheno_file`. Options are `icd9`, `doid`, `hpo`, `icd10` (default = doid)
 - **--snp_threshold** used to extract the top SNPs (default = 0.05)
 
 ### 1.2 - Outputs
