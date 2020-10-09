@@ -213,7 +213,7 @@ if (!params.phenofile && !params.metadata){
     file pheno from pheno
 
     output:
-    set file("phewas_results.csv"), file("top_results.csv"), file("*.png") into plots
+    set file("*phewas_results.csv") into results_chr
 
     script:
     """
@@ -391,7 +391,7 @@ if (params.plink_input && params.phenofile && params.metadata) {
 
     script:
     """
-    plink --recodeA --bfile ${bed.baseName} --out r_genotypes --extract $snps
+    plink --recodeA --bfile ${bed.baseName} --out r_genotypes --extract $snps --allow-no-vars
     """
     }
 
@@ -404,13 +404,29 @@ if (params.plink_input && params.phenofile && params.metadata) {
     file pheno from codes_pheno
 
     output:
-    set file("phewas_results.csv"), file("top_results.csv"), file("*.png") into plots
+    file("*phewas_results.csv") into results_chr
 
     script:
     """
     mkdir -p assets/
     cp /assets/* assets/
     phewas.R --pheno_file "$pheno" --geno_file "$genotypes" --n_cpus ${task.cpus} --pheno_codes "$params.pheno_codes"
+    """
+    }
+
+    process merge_results {
+    publishDir "${params.outdir}/merged_results", mode: 'copy'
+
+    input:
+    file("*phewas_result.csv") from results_chr.collect()
+
+    output:
+    set file("merged_results.csv"), file("merged_top_results.csv"), file("*png") into plots
+
+    script:
+    """
+    plot_merged_results.R
+
     """
     }
 }

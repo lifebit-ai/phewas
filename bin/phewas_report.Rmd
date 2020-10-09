@@ -61,9 +61,5 @@ htmltools::tags$figcaption( style = 'caption-side: bottom; text-align: center; f
 ```{r}
 table   <- as.data.frame(data.table::fread(params$results))
 colnames(table) <- snakecase::to_snake_case(colnames(table))
-reordered_columns <- c("description","group","phenotype","snp","adjustment","beta",
-                      "se","or","p","type","n_total","n_cases","n_controls","hwe_p",
-                      "allele_freq","n_no_snp","note","bonferroni")
-table <- table[, reordered_columns]
 DTable(table)
 ```

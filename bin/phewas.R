@@ -24,7 +24,9 @@ option_list = list(
   make_option(c("--n_cpus"), action="store", default='1', type='character',
               help="String containing input metadata for columns in Cohort Browser output."),
   make_option(c("--pheno_codes"), action="store", default='None', type='character',
-              help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10, HPO).")
+              help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10, HPO)."),
+  make_option(c("--outprefix"), action="store", default='covid', type='character',
+              help="String containing prefix to be added to files.")
 )
 
 args = parse_args(OptionParser(option_list=option_list))
@@ -33,6 +35,7 @@ pheno_file          = args$pheno_file # file
 geno_file           = args$geno_file
 n_cpus              = integer(args$n_cpus) # int
 pheno_codes         = args$pheno_codes
+outprefix           = args$outprefix
 
 ########################################
 ### Data input
@@ -64,9 +67,9 @@ if (pheno_codes == "doid") {
   # rename cols
   names(mappings) = c("doid","icd9")
   # replace DOID codes with icd9
-  id.code.count$doid = with(mappings, icd9[match(id.code.count$doid, doid)])
+  id.code.count$doid = with(mappings, icd9[match(id.code.count$code, doid)])
   # rename DOID col
-  names(id.code.count)[names(id.code.count) == 'doid'] = 'icd9'
+  names(id.code.count)[names(id.code.count) == 'code'] = 'icd9'
   # remove NA values
   #id.code.count = id.code.count[complete.cases(id.code.count), ]
   # id.code.count$doid =  mappings[match(id.code.count$icd9, mappings$icd9), 1, drop=F]
@@ -93,6 +96,13 @@ if (pheno_codes == 'hpo'){
 ########################################
 ### Run the PheWAS
 ########################################
+if (length(dim(genotypes)) < 1){
+results_d = data.frame()
+write.csv(results_d, file=paste0(outprefix,"_phewas_results.csv"), row.names=FALSE)
+#write.csv(results_d, file=paste0(outprefix,"_top_results.csv"), row.names=FALSE)
+}
+if (length(dim(genotypes)) > 1){
+
 results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),significance.threshold=c("bonferroni"))
 
 # Add PheWAS descriptions
@@ -100,14 +110,8 @@ results_d=addPhecodeInfo(results)
 
 # Write results to csv ordered by significance
 all_res=results_d[order(results_d$p),]
-write.csv(all_res, file="phewas_results.csv", row.names=FALSE)
-top_res=results_d[order(results_d$p)[1:1000],]
-write.csv(top_res, file="top_results.csv", row.names=FALSE)
+write.csv(all_res, file=paste0(outprefix,"_phewas_results.csv"), row.names=FALSE)
+#top_res=results_d[order(results_d$p)[1:1000],]
+#write.csv(top_res, file=paste0(outprefix, "_top_results.csv"), row.names=FALSE)
 
-########################################
-### Plotting
-########################################
-png("phewas_man.png", width = 1000, height = 750, units = 'px', pointsize=16)
-phewasManhattan(results, annotate.angle=0)
-dev.off()
-
+}
