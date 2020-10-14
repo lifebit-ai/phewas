@@ -1,5 +1,29 @@
 #!/usr/bin/env nextflow
 
+/*
+========================================================================================
+                         lifebit-ai/phewas
+========================================================================================
+ lifebit-ai/phewas pheWAS pipeline built for Genomics England and CloudOS
+ #### Homepage / Documentation
+ https://github.com/lifebit-ai/phewas
+----------------------------------------------------------------------------------------
+*/
+
+/*--------------------------------------------------
+  Channel setup
+---------------------------------------------------*/
+
+ch_input_cb_data = params.phenofile ? Channel.value(params.phenofile) : Channel.empty()
+ch_input_meta_data = params.metadata ? Channel.value(params.metadata) : Channel.empty()
+
+if (params.plink_input){
+Channel
+  .fromFilePairs("${params.plink_input}",size:3, flat : true)
+  .ifEmpty { exit 1, "PLINK files not found: ${params.plink_input}" }
+  .set { plinkCh }
+}
+
 if (params.data) {
     Channel.fromPath(params.data)
     .ifEmpty { exit 1, "FAM file (w/ header) containing phenotype data not found: ${params.data}" }
@@ -29,17 +53,25 @@ if (params.snps) {
     .ifEmpty { exit 1, "SNPs of interest file not found: ${params.snps}" }
     .set { snps }
 }
+if (params.pheno_file){
 Channel.fromPath(params.pheno_file)
     .ifEmpty { exit 1, "Phenotype file not found: ${params.pheno_file}" }
     .set { pheno }
+}
+
+if (params.mapping){
 Channel.fromPath(params.mapping)
     .ifEmpty { exit 1, "Mapping file not found: ${params.mapping}" }
     .set { mapping }
-
+}
 // Get as many processors as machine has
 int threads = Runtime.getRuntime().availableProcessors()
 
-if (params.vcf_file) {
+/*--------------------------------------------------
+  Using files outside CB
+---------------------------------------------------*/
+
+if (params.vcf_file && !params.phenofile && !params.metadata) {
     process file_preprocessing {
         publishDir 'results'
         container 'lifebitai/preprocess_gwas:latest'
@@ -111,7 +143,9 @@ if (params.vcf_file) {
         mv $fam plink.fam
         """
     }
-} else if (params.bed && params.bim && params.data) {
+}
+
+if (params.bed && params.bim && params.data && !params.phenofile && !params.metadata) {
     process preprocess_plink {
 
         input:
@@ -130,26 +164,11 @@ if (params.vcf_file) {
         mv $bim plink.bim
         """
     }
-} else {
-    exit 1, "\nPlease specify either:\n1) `--vcf` AND `--data` inputs\nOR\n2) `--bed` AND `--bim` AND `--data` inputs"
 }
 
-// process filter {
-//     publishDir "${params.outdir}/filter", mode: 'copy'
+if (!params.phenofile && !params.metadata){
 
-//     input:
-//     set file(bed), file(bim), file(fam) from plink
-
-//     output:
-//     file('*') into results
-
-//     script:
-//     """
-//     plink --bfile plink --mind 0.1 --geno 0.1 --maf 0.05 --hwe 0.000001 --me 0.05 0.1 --tdt --ci 0.95 --out results1
-//     """
-// }
-
-if (!params.snps) {
+    if (!params.snps) {
     process get_snps {
         publishDir 'results', mode: 'copy'
         container 'alliecreason/plink:1.90'
@@ -167,9 +186,9 @@ if (!params.snps) {
         awk -F' ' '{if(\$9<${params.snp_threshold}) print \$2}' out.assoc > snps.txt
         """
     }
-}
+    }
 
-process recode {
+    process recode {
     publishDir "${params.outdir}/plink", mode: 'copy'
 
     input:
@@ -177,47 +196,294 @@ process recode {
     file snps from snps
 
     output:
-    file('*') into phewas
+    file('*.raw') into phewas
 
     script:
     """
     plink --recodeA --bfile ${bed.baseName} --out r_genotypes --extract $snps
     """
-}
+    }
 
-process phewas {
+    process phewas {
     publishDir "${params.outdir}/phewas", mode: 'copy'
     cpus threads
 
     input:
     file genotypes from phewas
     file pheno from pheno
-    file mapping from mapping
 
     output:
-    set file("phewas_results.csv"), file("top_results.csv"), file("*.png") into plots
+    set file("*phewas_results.csv") into results_chr
 
     script:
     """
-    phewas.R $pheno ${task.cpus} $params.pheno_codes
+    mkdir -p assets/
+    cp /assets/* assets/
+    phewas.R --pheno_file "$pheno" --geno_file "$genotypes" --n_cpus ${task.cpus} --pheno_codes "$params.pheno_codes"
     """
+    }
 }
 
-process visualisations {
-    publishDir "${params.outdir}/Visualisations", mode: 'copy'
 
-    container 'lifebitai/vizjson:latest'
+if (params.plink_input && params.phenofile && params.metadata) {
+
+    process transform_cb_output {
+    tag "$name"
+    publishDir "${params.outdir}/design_matrix", mode: 'copy'
 
     input:
-    set file(phe), file(top), file(man) from plots
+    val input_cb_data from ch_input_cb_data
+    val input_meta_data from ch_input_meta_data
 
     output:
-    file '.report.json' into viz
+    file("*.json") into ch_encoding_json
+    file("*id_code_count.csv") into codes_pheno
+    file("*.phe") into pheno_file_prep
 
     script:
     """
-    img2json.py "${params.outdir}/phewas/$man" "Phenotype Manhattan Plot" ${man}.json  
-    csv2json.py $top "Top results from PheWAS by significance" ${top}.json
-    combine_reports.py .
+    cp /opt/bin/* .
+
+    mkdir -p ${params.outdir}/design_matrix
+    
+    transform_cb_output.R --input_cb_data "${params.phenofile}" \
+                          --input_meta_data "${params.metadata}" \
+                          --phenoCol "${params.phenoCol}" \
+                          --continuous_var_transformation "${params.continuous_var_transformation}" \
+                          --outdir "." \
+                          --outprefix "${params.output_tag}"
     """
+    }
+
+
+    if (params.phenofile && params.case_group && params.mode == 'case_vs_control_contrast') {
+
+        process add_design_matrix_case_vs_control_contrast {
+        tag "$name"
+        publishDir "${params.outdir}/contrasts", mode: 'copy'
+
+        input:
+        file(pheFile) from pheno_file_prep
+        file(json) from ch_encoding_json
+
+        output:
+        file("${params.output_tag}_design_matrix_control_*.phe") into (pheno, pheno2)
+
+        script:
+        """
+        cp /opt/bin/* .
+
+        mkdir -p ${params.outdir}/contrasts
+
+        create_design.R --input_file ${pheFile} \
+                        --mode "${params.mode}" \
+                        --case_group "${params.case_group}" \
+                        --outdir . \
+                        --outprefix "${params.output_tag}" \
+                        --phenoCol "${params.phenoCol}"
+                        
+        """
+        }
+    }
+
+    if (params.phenofile && params.case_group && params.mode == 'case_vs_groups_contrasts') {
+        process add_design_matrix_case_vs_groups_contrasts {
+            tag "$name"
+            publishDir "${params.outdir}/contrasts", mode: 'copy'
+
+            input:
+            file(pheFile) from pheno_file_prep
+            file(json) from ch_encoding_json
+
+            output:
+            file("${output_tag}_design_matrix_control_*.phe'") into (pheno, pheno2)
+
+            script:
+            """
+            cp /opt/bin/* .
+
+            mkdir -p ${params.outdir}/contrasts
+
+            create_design.R --input_file ${pheFile} \
+                            --case_group "${params.case_group}" \
+                            --outdir . \
+                            --outprefix "${params.output_tag}" \
+                            --phenoCol "${params.phenoCol}"
+                            
+            """
+        }
+    }
+
+    if (params.phenofile && params.mode == 'all_contrasts') {
+
+        process add_design_matrix_all_contrasts {
+            tag "$name"
+            publishDir "${params.outdir}/contrasts", mode: 'copy'
+
+            input:
+            file(pheFile) from pheno_file_prep
+            file(json) from ch_encoding_json
+
+            output:
+            file("${output_tag}_design_matrix_control_*.phe'") into pheno, pheno2
+
+            script:
+            """
+            cp /opt/bin/* .
+
+            mkdir -p ${params.outdir}/contrasts
+
+            create_design.R --input_file ${pheFile} \
+                            --mode ${params.mode}
+                            --outdir . \
+                            --outprefix "${params.output_tag}" \
+                            --phenoCol "${params.phenoCol}"
+                            
+            """
+        }
+    }
+    process preprocess_plink_cb {
+
+        input:
+        set val(name), file(bed), file(bim), file(fam) from plinkCh
+
+        output:
+        set file('*.bed'), file('*.bim'), file('*.fam') into plink, plink2
+
+        script:
+        """
+        sed '1d' $fam > tmpfile; mv tmpfile $fam
+        mv $fam plink.fam
+        mv $bed plink.bed
+        mv $bim plink.bim
+        """
+    }
+
+    if (!params.snps) {
+        process get_snps_cb {
+            publishDir 'results', mode: 'copy'
+            container 'alliecreason/plink:1.90'
+
+            input:
+            set file(bed), file(bim), file(fam) from plink
+            file pheno_file from pheno2
+
+            output:
+            file("snps.txt") into snps
+
+            script:
+            """
+            plink --bed $bed --bim $bim --fam $fam --pheno $pheno_file --pheno-name PHE --threads ${task.cpus} --assoc --allow-no-sex --out out
+            awk -F' ' '{if(\$9<${params.snp_threshold}) print \$2}' out.assoc > snps.txt
+            """
+        }
+    }
+
+    process recode_cb {
+    publishDir "${params.outdir}/plink", mode: 'copy'
+
+    input:
+    set file(bed), file(bim), file(fam) from plink2
+    file snps from snps
+
+    output:
+    file('*.raw') into phewas
+
+    script:
+    """
+    plink --recodeA --bfile ${bed.baseName} --out r_genotypes --extract $snps --allow-no-vars
+    """
+    }
+
+    process phewas_cb {
+    publishDir "${params.outdir}/phewas", mode: 'copy'
+    cpus threads
+
+    input:
+    file genotypes from phewas
+    file pheno from codes_pheno
+
+    output:
+    file("*phewas_results.csv") into results_chr
+
+    script:
+    """
+    mkdir -p assets/
+    cp /assets/* assets/
+    phewas.R --pheno_file "$pheno" --geno_file "$genotypes" --n_cpus ${task.cpus} --pheno_codes "$params.pheno_codes"
+    """
+    }
+
+    process merge_results {
+    publishDir "${params.outdir}/merged_results", mode: 'copy'
+
+    input:
+    file("*phewas_result.csv") from results_chr.collect()
+
+    output:
+    set file("merged_results.csv"), file("merged_top_results.csv"), file("*png") into plots
+
+    script:
+    """
+    plot_merged_results.R
+
+    """
+    }
 }
+
+
+
+
+// process filter {
+//     publishDir "${params.outdir}/filter", mode: 'copy'
+
+//     input:
+//     set file(bed), file(bim), file(fam) from plink
+
+//     output:
+//     file('*') into results
+
+//     script:
+//     """
+//     plink --bfile plink --mind 0.1 --geno 0.1 --maf 0.05 --hwe 0.000001 --me 0.05 0.1 --tdt --ci 0.95 --out results1
+//     """
+// }
+
+
+
+process build_report {
+  tag "report"
+  publishDir "${params.outdir}/MultiQC", mode: 'copy', pattern: '*.html'
+
+  input:
+  set file(results), file(top_results), file(plot) from plots
+
+  output:
+  file("multiqc_report.html") into ch_report_outputs
+
+  script:
+
+  """
+  mkdir assets/
+  cp /assets/* assets/
+
+  
+  # Generates the report
+  cp /opt/bin/phewas_report.Rmd .
+  cp /opt/bin/DTable.R .
+  cp /opt/bin/sanitise.R .
+  cp /opt/bin/style.css .
+  cp /opt/bin/logo.png .
+  
+
+  Rscript -e "rmarkdown::render('phewas_report.Rmd', params = list(manhattan='${plot}', results='${results}'))"
+  mv phewas_report.html multiqc_report.html
+
+  rm ./DTable.R
+  rm ./sanitise.R
+  rm ./style.css
+  rm ./phewas_report.Rmd
+  """
+}
+
+

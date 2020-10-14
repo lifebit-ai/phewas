@@ -1,4 +1,4 @@
-# CB integration with GWAS pipeline
+# CB integration with pheWAS pipeline
 
 CB output needs to be prepared and fed into pheWAS pipeline so users have an end-to-end experience.
 
@@ -66,7 +66,7 @@ rs10494464
 
 **Optional**
 
-- **--pheno_codes** pheno codes used for `pheno_file`. Options are `icd9` or `doid` (default = doid)
+- **--pheno_codes** pheno codes used for `pheno_file`. Options are `icd9`, `doid`, `hpo`, `icd10` (default = doid)
 - **--snp_threshold** used to extract the top SNPs (default = 0.05)
 
 ### 1.2 - Outputs
@@ -77,12 +77,11 @@ rs10494464
 - `r_genotypes.raw` contains information from the FAM file with the number of alleles for each given SNP of interest for all individuals (can be loaded into R)
 - `r_genotypes.log` log file detailing the execution of the PLINK command
 
-`vcf2plink` folder containing PLINK binaries:
-- plink.bed binary version of ped or pedigree file
-- plink.bim map file containing variant information
-- plink.fam FAM files contain phenotypic information and how the individuals relate to one another
+`phewas` folder containing results (as many files as chromosomes or one unique file) from pheWAS:
+- `*_phewas_results.csv` summary statistics.
 
-`Visualisations` directory containing:
+
+`MultiQC` directory containing:
 - `.report.json` file used to render the visualisations within CloudOS
 
 ### 1.3 - Scripts for ET (Extract - Transform)
@@ -94,33 +93,50 @@ rs10494464
 2. Should users only use pheWAS with ICD10 columns?
 3. Can I run with multi-level phenotypes? -> Test and if not adapt design_matrix.R
 4. Does the report needs updating?
+5. Not all samples might have any ICD10 code at all. 
 
 ## 3. Tasks
 - **(1) Prepare aggregate VCFs files & Test data**
-    - [ ] Ask Filippo about Question 2.
-    - [ ] Check that format of Individual VCFs format is compatible. Ask Filippo.
-    - [x] Create ICD10 columns in metadata from CB
-- **(2) Create vcf_list format form CB phenotypic output**
-    - [x] Merge `phewas_vcfs.csv` with phenotypes and covariates from CB output
+    - [x] Ask Filippo about Question 2.
+    - [x] Check that format of Individual VCFs format is compatible. Ask Filippo. -> After discussing with Christina, we decided to use PLINK files for now
+    - [x] Adapt plink processes to new plink input
+    - [x] Create code columns in metadata from CB
+- **(2) Create plink_input, phenofile and metadata parameter for CB phenotypic output**
+    - [x] Extract and transform relevant information from phenofile and metadata.
         - [x] integrate same transformation than for GWAS
-        - [x] Add vcf paths and covariates + phenotype
+        - [x] modify design matrix to cope with differences between GWAS and pheWAS
 - **(3) Create pheno_file capturing ICD10 codes**
     - [x] Create long table with ids, icd10, counts 
         - [x] make sure icd10 are inside metadata from CB output
         - [x] write function to reformat this into a long table
         - [x] count how many times is present, if not just set all to 1s. Ended up setting it to 3
-- **(4) Check that pheWAS works with icd10**
-    - [ ] Run tests with ICD10
-    - [ ] If ICD10 doesn't work, downgrade to ICD9
+- **(4) Check that pheWAS works with icd10, hpo and doid**
+    - [x] Add ICD10 mapping file
+    - [x] Add HPO mapping file
+    - [x] Add ICD9 mapping file
+    - [x] Add support for doid using ICD9 mappings
 - **(5) Refactor report so it looks similar to GWAS report**
-    - [ ] Save plots in png
-    - [ ] Show tables in report
+    - [x] Save plots in png
+    - [x] Show tables in report
+- **(6) Update nextflow.config and Dockerfile**
+- **(7) Test on CloudOS**
+
+## 4. Tests
+
+### Iter1
+
+https://cloudos.lifebit.ai/app/jobs/5f7fc50a8f81710113038a46 :tada:
+
+## 5. Future Work
+- **(1) Add colocalisation analysis**
+- **(2) Fix multiple contrast design and branching of processes**
+- **(3) Add transformations for continuous variables and support to this dtype**
+- **(4) Refactor round**
+    - [ ] Make sure everything looks tidy and params looks consistent
 - **(5) prepare nextflow processes for integration**
     - [ ] Refactor script so when aggregated VCFs & CB inputs are given it run subsequent processes, similar to GWAS
     - [ ] Add Prepare aggregate VCF step
     - [ ] Add CB output integration
-- **(6) Update nextflow.config and Dockerfile**
-- **(7) Test on CloudOS**
 
 
 
