@@ -16,7 +16,10 @@
 
 ch_input_cb_data = params.phenofile ? Channel.value(params.phenofile) : Channel.empty()
 ch_input_meta_data = params.metadata ? Channel.value(params.metadata) : Channel.empty()
+<<<<<<< HEAD
 gwas_input_ch = params.gwas_input ? Channel.value(params.gwas_input) : Channel.empty()
+=======
+>>>>>>> master
 
 if (params.plink_input){
 Channel
@@ -65,8 +68,11 @@ Channel.fromPath(params.mapping)
     .ifEmpty { exit 1, "Mapping file not found: ${params.mapping}" }
     .set { mapping }
 }
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> master
 // Get as many processors as machine has
 int threads = Runtime.getRuntime().availableProcessors()
 
