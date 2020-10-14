@@ -27,7 +27,7 @@ run_coloc_analysis = function(phewas_df, gwas_df, phewas_phenotype, trait_type) 
                         MAF=gwas_df$AF_Allele2)
     }
     if (trait_type == 'quantitative'){
-        coloc_results = coloc.abf(dataset1=list(pvalues=phewas_df$p,N=phewas_df$n_total,type="cc"), #PheWAS
+        coloc_results = coloc.abf(dataset1=list(pvalues=phewas_df$p,N=phewas_df$n_total, s=(phewas_df$n_cases/phewas_df$n_total),type="cc"), #PheWAS
                         dataset2=list(pvalues=gwas_df$p.value,  N=gwas_df$N, type="quant"), #GWAS
                         MAF=gwas_df$AF_Allele2)
     }
@@ -92,6 +92,8 @@ coloc_results %>% write.csv(paste0(outprefix,"_coloc_results.csv"), row.names=TR
 
 grouping = phewas_df %>% select(description, group) %>% distinct() %>% arrange(description) %>% select(group)
 grouping = grouping$group
+
+colnames(coloc_results) = c("n_snps", "pp_H0", "pp_H1", "pp_H2", "pp_H3", "pp_H4")
 
 ########################################
 ### Plot heatmap with results

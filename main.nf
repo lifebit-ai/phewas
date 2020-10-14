@@ -249,15 +249,16 @@ if (params.plink_input && params.phenofile && params.metadata) {
     
     transform_cb_output.R --input_cb_data "${params.phenofile}" \
                           --input_meta_data "${params.metadata}" \
-                          --phenoCol "${params.phenoCol}" \
+                          --phenoCol "${params.pheno_col}" \
                           --continuous_var_transformation "${params.continuous_var_transformation}" \
+                          --continuous_var_aggregation "${params.continuous_var_aggregation}" \
                           --outdir "." \
                           --outprefix "${params.output_tag}"
     """
     }
 
 
-    if (params.phenofile && params.case_group && params.mode == 'case_vs_control_contrast') {
+    if (params.phenofile && params.case_group && params.design_mode == 'case_vs_control_contrast') {
 
         process add_design_matrix_case_vs_control_contrast {
         tag "$name"
@@ -275,17 +276,17 @@ if (params.plink_input && params.phenofile && params.metadata) {
         cp /opt/bin/* .
 
         create_design.R --input_file ${pheFile} \
-                        --mode "${params.mode}" \
+                        --mode "${params.design_mode}" \
                         --case_group "${params.case_group}" \
                         --outdir . \
                         --outprefix "${params.output_tag}" \
-                        --phenoCol "${params.phenoCol}"
+                        --phenoCol "${params.pheno_col}"
                         
         """
         }
     }
 
-    if (params.phenofile && params.case_group && params.mode == 'case_vs_groups_contrasts') {
+    if (params.phenofile && params.case_group && params.design_mode == 'case_vs_groups_contrasts') {
         process add_design_matrix_case_vs_groups_contrasts {
             tag "$name"
             publishDir "${params.outdir}/contrasts", mode: 'copy'
@@ -305,13 +306,13 @@ if (params.plink_input && params.phenofile && params.metadata) {
                             --case_group "${params.case_group}" \
                             --outdir . \
                             --outprefix "${params.output_tag}" \
-                            --phenoCol "${params.phenoCol}"
+                            --phenoCol "${params.pheno_col}"
                             
             """
         }
     }
 
-    if (params.phenofile && params.mode == 'all_contrasts') {
+    if (params.phenofile && params.design_mode == 'all_contrasts') {
 
         process add_design_matrix_all_contrasts {
             tag "$name"
@@ -322,17 +323,17 @@ if (params.plink_input && params.phenofile && params.metadata) {
             file(json) from ch_encoding_json
 
             output:
-            file("${output_tag}_design_matrix_control_*.phe'") into pheno, pheno2
+            file("${output_tag}_design_matrix_control_*.phe'") into (pheno, pheno2)
 
             script:
             """
             cp /opt/bin/* .
 
             create_design.R --input_file ${pheFile} \
-                            --mode ${params.mode}
+                            --mode ${params.design_mode}
                             --outdir . \
                             --outprefix "${params.output_tag}" \
-                            --phenoCol "${params.phenoCol}"
+                            --phenoCol "${params.pheno_col}"
                             
             """
         }
