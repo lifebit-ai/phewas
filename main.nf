@@ -437,19 +437,19 @@ if (params.post_analysis == 'coloc'){
         publishDir "${params.outdir}/colocalization", mode: "copy"
         
         input:
-        file(gwas_file) from gwas_input_ch
+        file gwas_file from gwas_input_ch
         set file(merged_results), file(merged_top_results), file("*png") from plots2
 
         output:
-        set file("*.png"), file("*.csv") into coloc_results_ch
+        set file("*coloc_heatmap.png"), file("*coloc_results.csv") into coloc_results_ch
 
         script:
         """
         cp /opt/bin/* .
-        run_coloc.R --phewas_summary $merged_results \
-                    --gwas_summary $gwas_file \
-                    --gwas_trait_type ${params.gwas_trait_type}
-                    --outprefix ${params.output_tag}
+        run_coloc.R --phewas_summary "$merged_results" \
+                    --gwas_summary "${params.gwas_input}" \
+                    --gwas_trait_type "${params.gwas_trait_type}" \
+                    --outprefix "${params.output_tag}"
         """
     }
     process build_report_coloc {
@@ -478,14 +478,14 @@ if (params.post_analysis == 'coloc'){
         cp /opt/bin/logo.png .
         
 
-        Rscript -e "rmarkdown::render('phewas_report.Rmd', params = list(phewas_manhattan='${phewas_manhattan}', phewas_results='${phewas_results}', coloc_results='${coloc_results}', coloc_heatmap='${coloc_plot}'))"
+        Rscript -e "rmarkdown::render('phewas_report.Rmd', params = list(phewas_manhattan='${phewas_plot}', phewas_results='${phewas_results}', coloc_results='${coloc_results}', coloc_heatmap='${coloc_plot}'))"
         mv phewas_report.html multiqc_report.html
 
         rm ./DTable.R
         rm ./sanitise.R
         rm ./style.css
         rm ./phewas_report.Rmd
-        
+
         """
     }
 }

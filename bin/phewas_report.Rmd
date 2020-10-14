@@ -52,7 +52,7 @@ Plots to explore pheWAS results
 ```{r}
 figure_number  <- "Figure 1: "
 figure_caption <- "Manhattan plot"
-knitr::include_graphics(params$manhattan, )
+knitr::include_graphics(params$phewas_manhattan, )
 htmltools::tags$figcaption( style = 'caption-side: bottom; text-align: center; font-size: 85%%; color: #71879d',
                             htmltools::em(figure_number),
                             htmltools::em(figure_caption))
@@ -62,7 +62,7 @@ htmltools::tags$figcaption( style = 'caption-side: bottom; text-align: center; f
 ## pheWAS output
 
 ```{r}
-table   <- as.data.frame(data.table::fread(params$results))
+table   <- as.data.frame(data.table::fread(params$phewas_results))
 colnames(table) <- snakecase::to_snake_case(colnames(table))
 DTable(table)
 ```
@@ -79,36 +79,36 @@ The following analysis performs genetic colocalization analysis of two potential
 - H3: both traits are associated, but with different causal variants
 - H4: both traits are associated and share a single causal variant
 
-The plot below will display the Posterior Probability (PP) associated to H4.
+The plot below will display the Posterior Probability (PP) associated to all different hypothesis.
 
-Below you will find results regarding colocalisation analysis with the GWAS study selected. If no `coloc` option was set as post_analysis parameter, then you won't find any further results below.
+__Below you will find results regarding colocalisation analysis with the GWAS study selected. If no `"coloc"` option was set as `--post_analysis` parameter, then you won't find any further results below.__
 
 ### Colocalization output
 
 ```{r}
-if (param$coloc_results != 'None') {
+if (params$coloc_results != 'None') {
 table   <- as.data.frame(data.table::fread(params$coloc_results))
 colnames(table) <- snakecase::to_snake_case(colnames(table))
 DTable(table)
 }
-if(str_detect(param$coloc_results, '.csv') == FALSE){
+if (str_detect(params$coloc_results, '.csv') == FALSE){
 print('No colocalization analysis was performed. No table displayed')
 }
 ```
 
 ### Colocalization heatmap
 
-```{r}
-if(str_detect(param$coloc_heatmap, '.png'){
+```{r, results = "asis"}
+if (str_detect(params$coloc_heatmap, '.png')) {
 
   figure_number  <- "Figure 2: "
   figure_caption <- "Posterior Probability (PP) plot"
-  knitr::include_graphics(params$coloc_heatmap, )
+  cat(paste0("![](", params$coloc_heatmap, ")"), "\n")
   htmltools::tags$figcaption( style = 'caption-side: bottom; text-align: center; font-size: 85%%; color: #71879d',
                               htmltools::em(figure_number),
                               htmltools::em(figure_caption))
 }
-if(str_detect(param$coloc_heatmap, '.png') == FALSE) {
+if (str_detect(params$coloc_heatmap, '.png') == FALSE) {
 print('No colocalization analysis was performed. No plot displayed')
 }
 ```

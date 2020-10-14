@@ -10,6 +10,7 @@ library(data.table)
 library(tidyverse)
 library(coloc)
 library(ComplexHeatmap)
+library(RColorBrewer)
     })
 
 ####################
@@ -30,7 +31,8 @@ run_coloc_analysis = function(phewas_df, gwas_df, phewas_phenotype, trait_type) 
                         dataset2=list(pvalues=gwas_df$p.value,  N=gwas_df$N, type="quant"), #GWAS
                         MAF=gwas_df$AF_Allele2)
     }
-    return(coloc_results$summary)
+    coloc_results = coloc_results[[1]]
+    return(coloc_results)
 }
 
 ##########################################################
@@ -67,8 +69,9 @@ gwas_df = fread(gwas_summary) %>% as_tibble()
 
 #Find common SNPs
 
-gwas_df = gwas_df %>% filter(SNPID %in% mask_snp) %>% arrange(SNPID)
-phewas_df = phewas_df %>% filter(snp %in% mask_snp) %>% arrange(snp)
+mask_snp = intersect(gwas_df$SNPID, phewas_df$snp)
+gwas_df = gwas_df %>% filter(gwas_df$SNPID %in% mask_snp) %>% arrange(SNPID)
+phewas_df = phewas_df %>% filter(phewas_df$snp %in% mask_snp) %>% arrange(snp)
 
 ########################################
 ### Run coloc
@@ -76,15 +79,13 @@ phewas_df = phewas_df %>% filter(snp %in% mask_snp) %>% arrange(snp)
 
 coloc_results = sapply(unique(phewas_df$description), function(x) run_coloc_analysis(phewas_df, gwas_df, x, gwas_trait_type))
 
-phenotypes = names(coloc_results)
-
-coloc_results = rbindlist(coloc_results) %>% as.data.frame()
-rownames(coloc_results) = phenotypes 
+phenotypes = colnames(coloc_results)
+coloc_results = t(coloc_results) 
 
 ########################################
 ### Save results
 ########################################
-coloc_results %>% write.csv(paste0(outprefix,"_coloc_results.csv"), row.names=FALSE)
+coloc_results %>% write.csv(paste0(outprefix,"_coloc_results.csv"), row.names=TRUE)
 ########################################
 ### Prepare to plot
 ########################################
@@ -98,11 +99,18 @@ grouping = grouping$group
 
 group_col_fun = structure(brewer.pal(length(grouping), "Set3"), 
     names = grouping)
-ha = rowAnnotation(
-    group = anno_simple(grouping), col = group_col_fun),
-    annotation_name_side = "left")
-ht = Heatmap(coloc_results, name = "PP", right_annotation = ha, cluster_columns=FALSE, cluster_rows=TRUE, clustering_method_rows='ward.D2')
+ha = rowAnnotation(group = anno_simple(grouping), 
+                   col = group_col_fun,
+                   annotation_name_side = "bottom",
+                   show_legend = TRUE)
+ht = Heatmap(coloc_results[,-1],
+             name = "PP",
+             right_annotation = ha, 
+             cluster_columns=FALSE, 
+             cluster_rows=TRUE, 
+             clustering_method_rows='ward.D2',
+             row_names_side = "left")
 
 png(paste0(outprefix, "_coloc_heatmap.png"), width = 1000, height = 750, units = 'px', pointsize=16)
-draw(ht)
+draw(ht, annotation_legend_side = "left", heatmap_legend_side = "left")
 dev.off()
