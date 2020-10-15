@@ -51,9 +51,9 @@ Vignette: https://cran.r-project.org/web/packages/coloc/vignettes/vignette.html#
 
 ## 4. Tests
 
-### Iter1
+### Iter2
 
-https://cloudos.lifebit.ai/app/jobs/5f7fc50a8f81710113038a46 :tada:
+https://cloudos.lifebit.ai/app/jobs/5f878fc28f81710113099d68 :tada:
 
 ## 5. Future Work
 - **(1) Add GWAS catalogue**
