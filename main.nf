@@ -245,7 +245,6 @@ if (params.plink_input && params.phenofile && params.metadata) {
 
     script:
     """
-    cp /opt/bin/* .
     
     transform_cb_output.R --input_cb_data "${params.phenofile}" \
                           --input_meta_data "${params.metadata}" \
@@ -526,6 +525,5 @@ if (!params.post_analysis){
     }
 
 }
-
 
 
