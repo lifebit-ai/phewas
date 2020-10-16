@@ -300,7 +300,6 @@ if (params.plink_input && params.phenofile && params.metadata) {
 
             script:
             """
-            cp /opt/bin/* .
 
             create_design.R --input_file ${pheFile} \
                             --case_group "${params.case_group}" \
@@ -528,7 +527,6 @@ if (!params.post_analysis){
     }
 
 }
-
 
 
 
