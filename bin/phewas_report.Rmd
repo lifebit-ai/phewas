@@ -79,7 +79,7 @@ The following analysis performs genetic colocalization analysis of two potential
 - H3: both traits are associated, but with different causal variants
 - H4: both traits are associated and share a single causal variant
 
-The plot below will display the Posterior Probability (PP) associated to all different hypothesis.
+The plot below will display the Posterior Probability (PP) associated to all different hypotheses.
 
 __Below you will find results regarding colocalisation analysis with the GWAS study selected. If no `"coloc"` option was set as `--post_analysis` parameter, then you won't find any further results below.__
 
