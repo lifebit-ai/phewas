@@ -1,0 +1,20 @@
+name: tests for lifebit-ai/phewas
+# This workflow is triggered on pushes and PRs to the repository.
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nxf_ver: ['20.01.0', '']
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Nextflow
+        run: |
+          export NXF_VER=${{ matrix.nxf_ver }}
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name: Binary trait aggregation mean transformation log10 design mode case_vs_control_contrast icd10 coloc binary
+        run: |
+          nextflow run ${GITHUB_WORKSPACE} -profile test_binary_mean_log10_case_vs_control_contrast_icd10_coloc_binary

@@ -5,4 +5,7 @@ results/
 assets/
 .vscode
 *.json
-testdata/
+testdata/plink_old
+testdata/gel
+testdata/gwascat
+testdata/*.*
