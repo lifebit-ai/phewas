@@ -71,7 +71,7 @@ DTable(table)
 
 ## Colocalization
 
-The following analysis performs genetic colocalization analysis of two potentially related phenotypes, to ask whether they share common genetic causal variant(s). The hypothesis tested are the following:
+The following analysis performs genetic colocalization analysis of two potentially related phenotypes, to ask whether they share common genetic causal variant(s). The hypotheses tested are the following:
 
 - H0: neither trait has a genetic association in the region
 - H1: only PheWAS phenotype has a genetic association in the region
