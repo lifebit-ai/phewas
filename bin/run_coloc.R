@@ -11,6 +11,7 @@ library(tidyverse)
 library(coloc)
 library(ComplexHeatmap)
 library(RColorBrewer)
+library(circlize)
     })
 
 ####################
@@ -99,6 +100,7 @@ colnames(coloc_results) = c("n_snps", "pp_H0", "pp_H1", "pp_H2", "pp_H3", "pp_H4
 ### Plot heatmap with results
 ########################################
 
+col_fun = colorRamp2(c(-2, 0, 2), c("#4dc5ce", "#92C581", "#5c5c5e"))
 group_col_fun = structure(brewer.pal(length(grouping), "Set3"), 
     names = grouping)
 ha = ComplexHeatmap::rowAnnotation(group = anno_simple(grouping), 
@@ -111,7 +113,8 @@ ht = ComplexHeatmap::Heatmap(coloc_results[,-1],
              cluster_columns=FALSE, 
              cluster_rows=TRUE, 
              clustering_method_rows='ward.D2',
-             row_names_side = "left")
+             row_names_side = "left",
+             col = col_fun)
 
 png(paste0(outprefix, "_coloc_heatmap.png"), width = 1000, height = 750, units = 'px', pointsize=16)
 draw(ht, annotation_legend_side = "left", heatmap_legend_side = "left")
