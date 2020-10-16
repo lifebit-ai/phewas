@@ -16,6 +16,7 @@
 
 ch_input_cb_data = params.phenofile ? Channel.value(params.phenofile) : Channel.empty()
 ch_input_meta_data = params.metadata ? Channel.value(params.metadata) : Channel.empty()
+gwas_input_ch = params.gwas_input ? Channel.value(params.gwas_input) : Channel.empty()
 
 if (params.plink_input){
 Channel
@@ -64,6 +65,8 @@ Channel.fromPath(params.mapping)
     .ifEmpty { exit 1, "Mapping file not found: ${params.mapping}" }
     .set { mapping }
 }
+
+
 // Get as many processors as machine has
 int threads = Runtime.getRuntime().availableProcessors()
 
@@ -242,21 +245,19 @@ if (params.plink_input && params.phenofile && params.metadata) {
 
     script:
     """
-    cp /opt/bin/* .
-
-    mkdir -p ${params.outdir}/design_matrix
     
     transform_cb_output.R --input_cb_data "${params.phenofile}" \
                           --input_meta_data "${params.metadata}" \
-                          --phenoCol "${params.phenoCol}" \
+                          --phenoCol "${params.pheno_col}" \
                           --continuous_var_transformation "${params.continuous_var_transformation}" \
+                          --continuous_var_aggregation "${params.continuous_var_aggregation}" \
                           --outdir "." \
                           --outprefix "${params.output_tag}"
     """
     }
 
 
-    if (params.phenofile && params.case_group && params.mode == 'case_vs_control_contrast') {
+    if (params.phenofile && params.case_group && params.design_mode == 'case_vs_control_contrast') {
 
         process add_design_matrix_case_vs_control_contrast {
         tag "$name"
@@ -271,22 +272,19 @@ if (params.plink_input && params.phenofile && params.metadata) {
 
         script:
         """
-        cp /opt/bin/* .
-
-        mkdir -p ${params.outdir}/contrasts
 
         create_design.R --input_file ${pheFile} \
-                        --mode "${params.mode}" \
+                        --mode "${params.design_mode}" \
                         --case_group "${params.case_group}" \
                         --outdir . \
                         --outprefix "${params.output_tag}" \
-                        --phenoCol "${params.phenoCol}"
+                        --phenoCol "${params.pheno_col}"
                         
         """
         }
     }
 
-    if (params.phenofile && params.case_group && params.mode == 'case_vs_groups_contrasts') {
+    if (params.phenofile && params.case_group && params.design_mode == 'case_vs_groups_contrasts') {
         process add_design_matrix_case_vs_groups_contrasts {
             tag "$name"
             publishDir "${params.outdir}/contrasts", mode: 'copy'
@@ -300,21 +298,18 @@ if (params.plink_input && params.phenofile && params.metadata) {
 
             script:
             """
-            cp /opt/bin/* .
-
-            mkdir -p ${params.outdir}/contrasts
 
             create_design.R --input_file ${pheFile} \
                             --case_group "${params.case_group}" \
                             --outdir . \
                             --outprefix "${params.output_tag}" \
-                            --phenoCol "${params.phenoCol}"
+                            --phenoCol "${params.pheno_col}"
                             
             """
         }
     }
 
-    if (params.phenofile && params.mode == 'all_contrasts') {
+    if (params.phenofile && params.design_mode == 'all_contrasts') {
 
         process add_design_matrix_all_contrasts {
             tag "$name"
@@ -325,19 +320,16 @@ if (params.plink_input && params.phenofile && params.metadata) {
             file(json) from ch_encoding_json
 
             output:
-            file("${output_tag}_design_matrix_control_*.phe'") into pheno, pheno2
+            file("${output_tag}_design_matrix_control_*.phe'") into (pheno, pheno2)
 
             script:
             """
-            cp /opt/bin/* .
-
-            mkdir -p ${params.outdir}/contrasts
 
             create_design.R --input_file ${pheFile} \
-                            --mode ${params.mode}
+                            --mode ${params.design_mode}
                             --outdir . \
                             --outprefix "${params.output_tag}" \
-                            --phenoCol "${params.phenoCol}"
+                            --phenoCol "${params.pheno_col}"
                             
             """
         }
@@ -421,7 +413,7 @@ if (params.plink_input && params.phenofile && params.metadata) {
     file("*phewas_result.csv") from results_chr.collect()
 
     output:
-    set file("merged_results.csv"), file("merged_top_results.csv"), file("*png") into plots
+    set file("merged_results.csv"), file("merged_top_results.csv"), file("*png") into plots, plots2
 
     script:
     """
@@ -432,58 +424,104 @@ if (params.plink_input && params.phenofile && params.metadata) {
 }
 
 
+/*---------------------------------
+  Colocalization analysis
+-----------------------------------*/
 
+if (params.post_analysis == 'coloc'){
 
-// process filter {
-//     publishDir "${params.outdir}/filter", mode: 'copy'
+    process run_coloc {
+        publishDir "${params.outdir}/colocalization", mode: "copy"
+        
+        input:
+        file gwas_file from gwas_input_ch
+        set file(merged_results), file(merged_top_results), file("*png") from plots2
 
-//     input:
-//     set file(bed), file(bim), file(fam) from plink
+        output:
+        set file("*coloc_heatmap.png"), file("*coloc_results.csv") into coloc_results_ch
 
-//     output:
-//     file('*') into results
+        script:
+        """
+        run_coloc.R --phewas_summary "$merged_results" \
+                    --gwas_summary "${params.gwas_input}" \
+                    --gwas_trait_type "${params.gwas_trait_type}" \
+                    --outprefix "${params.output_tag}"
+        """
+    }
+    process build_report_coloc {
+        tag "report"
+        publishDir "${params.outdir}/MultiQC", mode: 'copy', pattern: '*.html'
 
-//     script:
-//     """
-//     plink --bfile plink --mind 0.1 --geno 0.1 --maf 0.05 --hwe 0.000001 --me 0.05 0.1 --tdt --ci 0.95 --out results1
-//     """
-// }
+        input:
+        set file(coloc_plot), file(coloc_results) from coloc_results_ch
+        set file(phewas_results), file(phewas_top_results), file(phewas_plot) from plots
 
+        output:
+        file("multiqc_report.html") into ch_report_outputs
 
+        script:
 
-process build_report {
-  tag "report"
-  publishDir "${params.outdir}/MultiQC", mode: 'copy', pattern: '*.html'
+        """
+        mkdir assets/
+        cp /assets/* assets/
 
-  input:
-  set file(results), file(top_results), file(plot) from plots
+        
+        # Generates the report
+        cp /opt/bin/phewas_report.Rmd .
+        cp /opt/bin/DTable.R .
+        cp /opt/bin/sanitise.R .
+        cp /opt/bin/style.css .
+        cp /opt/bin/logo.png .
+        
 
-  output:
-  file("multiqc_report.html") into ch_report_outputs
+        Rscript -e "rmarkdown::render('phewas_report.Rmd', params = list(phewas_manhattan='${phewas_plot}', phewas_results='${phewas_results}', coloc_results='${coloc_results}', coloc_heatmap='${coloc_plot}'))"
+        mv phewas_report.html multiqc_report.html
 
-  script:
+        rm ./DTable.R
+        rm ./sanitise.R
+        rm ./style.css
+        rm ./phewas_report.Rmd
 
-  """
-  mkdir assets/
-  cp /assets/* assets/
-
-  
-  # Generates the report
-  cp /opt/bin/phewas_report.Rmd .
-  cp /opt/bin/DTable.R .
-  cp /opt/bin/sanitise.R .
-  cp /opt/bin/style.css .
-  cp /opt/bin/logo.png .
-  
-
-  Rscript -e "rmarkdown::render('phewas_report.Rmd', params = list(manhattan='${plot}', results='${results}'))"
-  mv phewas_report.html multiqc_report.html
-
-  rm ./DTable.R
-  rm ./sanitise.R
-  rm ./style.css
-  rm ./phewas_report.Rmd
-  """
+        """
+    }
 }
 
+if (!params.post_analysis){
+
+    process build_report {
+        tag "report"
+        publishDir "${params.outdir}/MultiQC", mode: 'copy', pattern: '*.html'
+
+        input:
+        set file(phewas_results), file(phewas_top_results), file(phewas_plot) from plots
+
+        output:
+        file("multiqc_report.html") into ch_report_outputs
+
+        script:
+
+        """
+        mkdir assets/
+        cp /assets/* assets/
+
+        
+        # Generates the report
+        cp /opt/bin/phewas_report.Rmd .
+        cp /opt/bin/DTable.R .
+        cp /opt/bin/sanitise.R .
+        cp /opt/bin/style.css .
+        cp /opt/bin/logo.png .
+        
+
+        Rscript -e "rmarkdown::render('phewas_report.Rmd', params = list(phewas_manhattan='${phewas_manhattan}', phewas_results='${phewas_results}', coloc_results='None', coloc_heatmap='None'))"
+        mv phewas_report.html multiqc_report.html
+
+        rm ./DTable.R
+        rm ./sanitise.R
+        rm ./style.css
+        rm ./phewas_report.Rmd
+        """
+    }
+
+}
 

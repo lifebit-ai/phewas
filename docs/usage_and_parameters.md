@@ -1,16 +1,18 @@
-# Usage
+# General Usage
 
 In order to use this pipeline, you can run the following example:
 **Binary**
 ```bash
 nextflow run main.nf --phenofile "https://gist.githubusercontent.com/mcamarad/e98cdd5e69413fb6189ed70405c43ef4/raw/76420a552c7f3bae7619fc2d56605ad06165ea84/cohort_data_phenos_phewas.csv" \
                      --metadata "https://gist.githubusercontent.com/mcamarad/e98cdd5e69413fb6189ed70405c43ef4/raw/d602bec4b31d5d75f74f1dbb408bd392db57bdb6/metadata.csv" \
-                     --continuous_var_transformation "mean" \
+                     --continuous_var_aggregation "mean" \
+                     --continuous_var_transformation "log10" \
                      --plink_input "s3://lifebit-featured-datasets/projects/gel/gel-gwas/testdata/sampleA.{bed,bim,fam}" \
-                     --phenoCol "Specimen type" \
+                     --pheno_col "Specimen type" \
                      --case_group "NOSE" \
-                     --mode "case_vs_control_contrast" \
+                     --design_mode "case_vs_control_contrast" \
                      --pheno_codes "icd10"
+
 ```
 
 # Parameters
@@ -18,22 +20,26 @@ nextflow run main.nf --phenofile "https://gist.githubusercontent.com/mcamarad/e9
 ## **ESSENTIAL**
 
 - **--plink_input** : path/url to CSV file containing chr chunk information, path to aggregated VCFs, VCFs index.
-- **--phenoCol** : String with the name of the phenotypic column to be used as trait. Note for CB users, it must match the name of the column, i.e. 'Specimen type'.
+- **--pheno_col** : String with the name of the phenotypic column to be used as trait. Note for CB users, it must match the name of the column, i.e. 'Specimen type'.
 - **--phenofile** : path/url to file that contains phenotypic information about cohort to be analysed.
 - **--metadata** : path/url to file that contains metadata from phenotypic information.
 - **--pheno_codes** : String containing phenotypic codes to be used. Select from "icd9", "doid", "hpo or "icd10".
 
 ## **Optional**
 
-- **continuous_var_transformation** : Transforms continuous variables using 'log', 'log10', 'log2', 'zscores' or 'None'.
-- **continuous_var_aggregation** : Defines how to aggregate different measurements. Choose between 'max', 'min', 'median' or 'mean'.
-- **snps** : File containing list of SNPs to be tested.
-- **snp_threshold** : Threshold to select SNPs significance from plink association analysis if `snps` are not provided. Defaults to 0.05
-- **outdir** : Output directory for results.
-- **output_tag** : Prefix to identify output files.
+- **--continuous_var_transformation** : Transforms continuous variables using 'log', 'log10', 'log2', 'zscores' or 'None'.
+- **--continuous_var_aggregation** : Defines how to aggregate different measurements. Choose between 'max', 'min', 'median' or 'mean'.
+- **--snps** : File containing list of SNPs to be tested.
+- **--snp_p_val_threshold** : Threshold to select SNPs significance from plink association analysis if `snps` are not provided. Defaults to 0.05
+
+- **--outdir** : Output directory for results.
+- **--output_tag** : Prefix to identify output files.
+- **--post_analysis** : String containing type of posterior analysis to be executed. Only option is `"coloc"`
+- **--gwas_input** : Path to file containing GWAS summary statistics.
+- **--gwas_trait_type** : String containing type of trait in GWAS. Accepts `"binary"` or `"quantitative"`.
 
 ## **Binary**
-- **--mode** : String containing the design matrix configuration to be used. Allows the user to select between the following scenarios:
+- **--design_mode** : String containing the design matrix configuration to be used. Allows the user to select between the following scenarios:
 
 || Value | Description | Needs | Added value |
 |--|--|--|--|--|
@@ -45,4 +51,39 @@ nextflow run main.nf --phenofile "https://gist.githubusercontent.com/mcamarad/e9
 
 ## **Quantitative**
 
-Option not implemented and tested yet.
+Option not implemented or tested yet.
+
+## **Colocalization**
+
+**Binary GWAS**
+```bash
+nextflow run main.nf --phenofile "https://gist.githubusercontent.com/mcamarad/e98cdd5e69413fb6189ed70405c43ef4/raw/76420a552c7f3bae7619fc2d56605ad06165ea84/cohort_data_phenos_phewas.csv" \
+                     --metadata "https://gist.githubusercontent.com/mcamarad/e98cdd5e69413fb6189ed70405c43ef4/raw/d602bec4b31d5d75f74f1dbb408bd392db57bdb6/metadata.csv" \
+                     --continuous_var_aggregation "mean" \
+                     --continuous_var_transformation "log10" \
+                     --plink_input "s3://lifebit-featured-datasets/projects/gel/gel-gwas/testdata/sampleA.{bed,bim,fam}" \
+                     --pheno_col "Specimen type" \
+                     --case_group "NOSE" \
+                     --design_mode "case_vs_control_contrast" \
+                     --pheno_codes "icd10" \
+                     --post_analysis 'coloc' \
+                     --gwas_input "https://gist.githubusercontent.com/mcamarad/e98cdd5e69413fb6189ed70405c43ef4/raw/74e0e3b0f1a9c5f95804053b375258da3bfe64cc/gwas_summary_bin.csv" \
+                     --gwas_trait_type 'binary'
+
+```
+**Quantitative GWAS**
+```bash
+nextflow run main.nf --phenofile "https://gist.githubusercontent.com/mcamarad/e98cdd5e69413fb6189ed70405c43ef4/raw/76420a552c7f3bae7619fc2d56605ad06165ea84/cohort_data_phenos_phewas.csv" \
+                     --metadata "https://gist.githubusercontent.com/mcamarad/e98cdd5e69413fb6189ed70405c43ef4/raw/d602bec4b31d5d75f74f1dbb408bd392db57bdb6/metadata.csv" \
+                     --continuous_var_aggregation "mean" \
+                     --continuous_var_transformation "log10" \
+                     --plink_input "s3://lifebit-featured-datasets/projects/gel/gel-gwas/testdata/sampleA.{bed,bim,fam}" \
+                     --pheno_col "Specimen type" \
+                     --case_group "NOSE" \
+                     --design_mode "case_vs_control_contrast" \
+                     --pheno_codes "icd10" \
+                     --post_analysis 'coloc' \
+                     --gwas_input 'https://gist.githubusercontent.com/mcamarad/e98cdd5e69413fb6189ed70405c43ef4/raw/74e0e3b0f1a9c5f95804053b375258da3bfe64cc/gwas_summary_qt.csv' \
+                     --gwas_trait_type 'quantitative'
+
+```

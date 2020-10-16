@@ -128,15 +128,16 @@ rs10494464
 https://cloudos.lifebit.ai/app/jobs/5f7fc50a8f81710113038a46 :tada:
 
 ## 5. Future Work
-- **(1) Add colocalisation analysis**
+- **(1) Add colocalisation analysis** - DONE
 - **(2) Fix multiple contrast design and branching of processes**
-- **(3) Add transformations for continuous variables and support to this dtype**
+- **(3) Add transformations for continuous variables**
 - **(4) Refactor round**
     - [ ] Make sure everything looks tidy and params looks consistent
-- **(5) prepare nextflow processes for integration**
+- **(5) prepare nextflow processes for integration with VCFs**
     - [ ] Refactor script so when aggregated VCFs & CB inputs are given it run subsequent processes, similar to GWAS
     - [ ] Add Prepare aggregate VCF step
     - [ ] Add CB output integration
+- **(6) Add support to continuous variables as PHE**
 
 
 
