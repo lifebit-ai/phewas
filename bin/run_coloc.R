@@ -100,7 +100,7 @@ colnames(coloc_results) = c("n_snps", "pp_H0", "pp_H1", "pp_H2", "pp_H3", "pp_H4
 ### Plot heatmap with results
 ########################################
 
-col_fun = colorRamp2(c(-2, 0, 2), c("#4dc5ce", "#92C581", "#5c5c5e"))
+col_fun = colorRamp2(c(0, 0.5, 1), c("#4dc5ce", "#92C581", "#5c5c5e"))
 group_col_fun = structure(brewer.pal(length(grouping), "Set3"), 
     names = grouping)
 ha = ComplexHeatmap::rowAnnotation(group = anno_simple(grouping), 
