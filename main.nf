@@ -273,7 +273,6 @@ if (params.plink_input && params.phenofile && params.metadata) {
 
         script:
         """
-        cp /opt/bin/* .
 
         create_design.R --input_file ${pheFile} \
                         --mode "${params.design_mode}" \
@@ -527,7 +526,6 @@ if (!params.post_analysis){
     }
 
 }
-
 
 
 
