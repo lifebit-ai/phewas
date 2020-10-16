@@ -442,7 +442,6 @@ if (params.post_analysis == 'coloc'){
 
         script:
         """
-        cp /opt/bin/* .
         run_coloc.R --phewas_summary "$merged_results" \
                     --gwas_summary "${params.gwas_input}" \
                     --gwas_trait_type "${params.gwas_trait_type}" \
@@ -525,5 +524,4 @@ if (!params.post_analysis){
     }
 
 }
-
 
