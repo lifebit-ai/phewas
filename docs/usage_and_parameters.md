@@ -30,7 +30,8 @@ nextflow run main.nf --phenofile "https://gist.githubusercontent.com/mcamarad/e9
 - **--continuous_var_transformation** : Transforms continuous variables using 'log', 'log10', 'log2', 'zscores' or 'None'.
 - **--continuous_var_aggregation** : Defines how to aggregate different measurements. Choose between 'max', 'min', 'median' or 'mean'.
 - **--snps** : File containing list of SNPs to be tested.
-- **--snp_threshold** : Threshold to select SNPs significance from plink association analysis if `snps` are not provided. Defaults to 0.05
+- **--snp_p_val_threshold** : Threshold to select SNPs significance from plink association analysis if `snps` are not provided. Defaults to 0.05
+
 - **--outdir** : Output directory for results.
 - **--output_tag** : Prefix to identify output files.
 - **--post_analysis** : String containing type of posterior analysis to be executed. Only option is `"coloc"`

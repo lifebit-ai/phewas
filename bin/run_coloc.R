@@ -101,11 +101,11 @@ colnames(coloc_results) = c("n_snps", "pp_H0", "pp_H1", "pp_H2", "pp_H3", "pp_H4
 
 group_col_fun = structure(brewer.pal(length(grouping), "Set3"), 
     names = grouping)
-ha = rowAnnotation(group = anno_simple(grouping), 
+ha = ComplexHeatmap::rowAnnotation(group = anno_simple(grouping), 
                    col = group_col_fun,
                    annotation_name_side = "bottom",
                    show_legend = TRUE)
-ht = Heatmap(coloc_results[,-1],
+ht = ComplexHeatmap::Heatmap(coloc_results[,-1],
              name = "PP",
              right_annotation = ha, 
              cluster_columns=FALSE, 
