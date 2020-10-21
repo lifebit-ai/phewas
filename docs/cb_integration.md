@@ -1,4 +1,4 @@
-# CB integration with GWAS pipeline
+# CB integration with pheWAS pipeline
 
 ## 1. **Ingestion**
 
@@ -30,11 +30,12 @@ Note: It doesn't assume that sex comes from any column in particular. If present
 
 ### 3.1 - Possible scenarios
 
-|| Description | Needs | Added value |
-|--|--|--|--|
-| Scenario 1 | User wants to run on a particular case but wants to use all the rest of cases as controls. | Subset the particular case group and select all the remaining individuals as control | Find significant associations exclusive to the case group you are interested |
-| Scenario 2 | User wants to run on a particular case but wants to compare to each of the other cases as controls independently | Subset case vs each group as control | Find associations that are different to an specific group |
-| Scenario 3 | User doesn't have a particular group in mind and wants to run an exploration on the phenotype | All vs All approach | Allows for exploration or assumptions free analysis |
+|| Value | Description | Needs | Added value |
+|--|--|--|--|--|
+| Scenario 1 | case_vs_control_contrast | User wants to run on a particular case but wants to use all the rest of cases as controls. | Subset the particular case group and select all the remaining individuals as control | Find significant associations exclusive to the case group you are interested |
+| Scenario 2 | case_vs_group_contrasts | User wants to run on a particular case but wants to compare to each of the other cases as controls independently | Subset case vs each group as control | Find associations that are different to an specific group |
+| Scenario 3 | all_vs_all | User doesn't have a particular group in mind and wants to run an exploration on the phenotype | All vs All approach | Allows for exploration or assumptions free analysis |
+
 
 
 # Future work
