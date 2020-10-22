@@ -3,7 +3,7 @@ name: tests for lifebit-ai/phewas
 on: [push, pull_request]
 
 jobs:
-  test:
+  test_binary_mean_log10_case_vs_control_contrast_icd10_coloc_binary:
     runs-on: ubuntu-latest
     strategy:
       matrix:
