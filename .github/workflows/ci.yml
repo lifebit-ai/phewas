@@ -182,4 +182,19 @@ jobs:
           sudo mv nextflow /usr/local/bin/
       - name: General test with binary trait and transformation zscore
         run: |
-          nextflow run ${GITHUB_WORKSPACE} -profile test_tf_zscore
+          nextflow run ${GITHUB_WORKSPACE} -profile test_tf_zscore        
+  continuous_var_agg_matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nxf_ver: ['20.01.0', '']
+        continuous_var_aggregation: [mean, min, max, log10]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Nextflow
+        run: |
+          export NXF_VER=${{ matrix.nxf_ver }}
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name: Run continuous_var_agg test
+        run: nextflow run ${GITHUB_WORKSPACE} --continuous_var_aggregation ${{ matrix.continuous_var_aggregation }} -profile test_agg_min
