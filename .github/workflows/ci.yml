@@ -183,7 +183,7 @@ jobs:
       - name: General test with binary trait and transformation zscore
         run: |
           nextflow run ${GITHUB_WORKSPACE} -profile test_tf_zscore        
-  continuous_var_agg_matrix:
+  cont_agg:
     runs-on: ubuntu-latest
     strategy:
       matrix:
