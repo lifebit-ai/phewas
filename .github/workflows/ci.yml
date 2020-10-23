@@ -188,7 +188,8 @@ jobs:
     strategy:
       matrix:
         nxf_ver: ['20.01.0', '']
-        continuous_var_aggregation: [mean, min, max, log10]
+        continuous_var_aggregation: [mean, min, max, median]
+        continuous_var_transformation: [log, log10, log2, zscores, None]
     steps:
       - uses: actions/checkout@v2
       - name: Install Nextflow
@@ -197,4 +198,4 @@ jobs:
           wget -qO- get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
       - name: Run continuous_var_agg test
-        run: nextflow run ${GITHUB_WORKSPACE} --continuous_var_aggregation ${{ matrix.continuous_var_aggregation }} -profile test_agg_min
+        run: nextflow run ${GITHUB_WORKSPACE} --continuous_var_transformation ${{ matrix.continuous_var_transformation }}  --continuous_var_aggregation ${{ matrix.continuous_var_aggregation }} -profile test_agg_min
