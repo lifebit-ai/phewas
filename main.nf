@@ -513,7 +513,7 @@ if (!params.post_analysis){
         cp /opt/bin/logo.png .
         
 
-        Rscript -e "rmarkdown::render('phewas_report.Rmd', params = list(phewas_manhattan='${phewas_manhattan}', phewas_results='${phewas_results}', coloc_results='None', coloc_heatmap='None'))"
+        Rscript -e "rmarkdown::render('phewas_report.Rmd', params = list(phewas_manhattan='${phewas_plot}', phewas_results='${phewas_results}', coloc_results='None', coloc_heatmap='None'))"
         mv phewas_report.html multiqc_report.html
 
         rm ./DTable.R
