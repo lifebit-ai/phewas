@@ -16,7 +16,7 @@
 
 ch_pheno = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
 codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
-gwas_input_ch = params.gwas_input ? Channel.value(params.gwas_input) : Channel.empty()
+gwas_input_ch = params.gwas_input ? Channel.value(file(params.gwas_input)) : Channel.empty()
 
 if (params.plink_input){
 Channel
@@ -340,7 +340,7 @@ if (params.post_analysis == 'coloc'){
         script:
         """
         run_coloc.R --phewas_summary "$merged_results" \
-                    --gwas_summary "${params.gwas_input}" \
+                    --gwas_summary "${gwas_file}" \
                     --gwas_trait_type "${params.gwas_trait_type}" \
                     --outprefix "${params.output_tag}"
         """
