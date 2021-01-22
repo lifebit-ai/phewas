@@ -1,4 +1,4 @@
-# CB integration with pheWAS pipeline
+# pheWAS pipeline
 
 CB output needs to be prepared and fed into pheWAS pipeline so users have an end-to-end experience.
 
@@ -84,9 +84,6 @@ rs10494464
 `MultiQC` directory containing:
 - `.report.json` file used to render the visualisations within CloudOS
 
-### 1.3 - Scripts for ET (Extract - Transform)
-**transform_cb_output.R:** Script that takes the cohort browser metadata and transform it into `vcf_list` & produces a file similar to `--pheno_file` format taking info from `ICD10` columns.
-**create_design.R** (Optional) - Script that creates designs matrix if needed.
 
 ## 2. Q&A / Considerations
 1. It has to work with individual VCFs

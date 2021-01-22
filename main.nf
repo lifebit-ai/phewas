@@ -14,8 +14,8 @@
   Channel setup
 ---------------------------------------------------*/
 
-ch_input_cb_data = params.phenofile ? Channel.value(params.phenofile) : Channel.empty()
-ch_input_meta_data = params.metadata ? Channel.value(params.metadata) : Channel.empty()
+ch_pheno = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
+codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
 gwas_input_ch = params.gwas_input ? Channel.value(params.gwas_input) : Channel.empty()
 
 if (params.plink_input){
@@ -74,7 +74,7 @@ int threads = Runtime.getRuntime().availableProcessors()
   Using files outside CB
 ---------------------------------------------------*/
 
-if (params.vcf_file && !params.phenofile && !params.metadata) {
+if (params.vcf_file && !params.input_phenofile && !params.input_id_code_count) {
     process file_preprocessing {
         publishDir 'results'
         container 'lifebitai/preprocess_gwas:latest'
@@ -148,7 +148,8 @@ if (params.vcf_file && !params.phenofile && !params.metadata) {
     }
 }
 
-if (params.bed && params.bim && params.data && !params.phenofile && !params.metadata) {
+if (params.bed && params.bim && params.data && !params.input_phenofile && !params.input_id_code_count) {
+
     process preprocess_plink {
 
         input:
@@ -169,7 +170,7 @@ if (params.bed && params.bim && params.data && !params.phenofile && !params.meta
     }
 }
 
-if (!params.phenofile && !params.metadata){
+if (!params.input_phenofile && !params.input_id_code_count){
 
     if (!params.snps) {
     process get_snps {
@@ -185,7 +186,7 @@ if (!params.phenofile && !params.metadata){
 
         script:
         """
-        plink --bed $bed --bim $bim --fam $fam --pheno $pheno_file --pheno-name $params.pheno --threads ${task.cpus} --assoc --out out
+        plink --bed $bed --bim $bim --fam $fam --pheno ${pheno_file} --pheno-name $params.pheno --threads ${task.cpus} --assoc --out out
         awk -F' ' '{if(\$9<${params.snp_threshold}) print \$2}' out.assoc > snps.txt
         """
     }
@@ -213,7 +214,7 @@ if (!params.phenofile && !params.metadata){
 
     input:
     file genotypes from phewas
-    file pheno from pheno
+    file pheno from ch_pheno
 
     output:
     set file("*phewas_results.csv") into results_chr
@@ -228,112 +229,8 @@ if (!params.phenofile && !params.metadata){
 }
 
 
-if (params.plink_input && params.phenofile && params.metadata) {
+if (params.plink_input && params.input_phenofile && params.input_id_code_count) {
 
-    process transform_cb_output {
-    tag "$name"
-    publishDir "${params.outdir}/design_matrix", mode: 'copy'
-
-    input:
-    val input_cb_data from ch_input_cb_data
-    val input_meta_data from ch_input_meta_data
-
-    output:
-    file("*.json") into ch_encoding_json
-    file("*id_code_count.csv") into codes_pheno
-    file("*.phe") into pheno_file_prep
-
-    script:
-    """
-    
-    transform_cb_output.R --input_cb_data "${params.phenofile}" \
-                          --input_meta_data "${params.metadata}" \
-                          --phenoCol "${params.pheno_col}" \
-                          --continuous_var_transformation "${params.continuous_var_transformation}" \
-                          --continuous_var_aggregation "${params.continuous_var_aggregation}" \
-                          --outdir "." \
-                          --outprefix "${params.output_tag}"
-    """
-    }
-
-
-    if (params.phenofile && params.case_group && params.design_mode == 'case_vs_control_contrast') {
-
-        process add_design_matrix_case_vs_control_contrast {
-        tag "$name"
-        publishDir "${params.outdir}/contrasts", mode: 'copy'
-
-        input:
-        file(pheFile) from pheno_file_prep
-        file(json) from ch_encoding_json
-
-        output:
-        file("${params.output_tag}_design_matrix_control_*.phe") into (pheno, pheno2)
-
-        script:
-        """
-
-        create_design.R --input_file ${pheFile} \
-                        --mode "${params.design_mode}" \
-                        --case_group "${params.case_group}" \
-                        --outdir . \
-                        --outprefix "${params.output_tag}" \
-                        --phenoCol "${params.pheno_col}"
-                        
-        """
-        }
-    }
-
-    if (params.phenofile && params.case_group && params.design_mode == 'case_vs_groups_contrasts') {
-        process add_design_matrix_case_vs_groups_contrasts {
-            tag "$name"
-            publishDir "${params.outdir}/contrasts", mode: 'copy'
-
-            input:
-            file(pheFile) from pheno_file_prep
-            file(json) from ch_encoding_json
-
-            output:
-            file("${output_tag}_design_matrix_control_*.phe'") into (pheno, pheno2)
-
-            script:
-            """
-
-            create_design.R --input_file ${pheFile} \
-                            --case_group "${params.case_group}" \
-                            --outdir . \
-                            --outprefix "${params.output_tag}" \
-                            --phenoCol "${params.pheno_col}"
-                            
-            """
-        }
-    }
-
-    if (params.phenofile && params.design_mode == 'all_contrasts') {
-
-        process add_design_matrix_all_contrasts {
-            tag "$name"
-            publishDir "${params.outdir}/contrasts", mode: 'copy'
-
-            input:
-            file(pheFile) from pheno_file_prep
-            file(json) from ch_encoding_json
-
-            output:
-            file("${output_tag}_design_matrix_control_*.phe'") into (pheno, pheno2)
-
-            script:
-            """
-
-            create_design.R --input_file ${pheFile} \
-                            --mode ${params.design_mode}
-                            --outdir . \
-                            --outprefix "${params.output_tag}" \
-                            --phenoCol "${params.pheno_col}"
-                            
-            """
-        }
-    }
     process preprocess_plink_cb {
 
         input:
@@ -358,14 +255,14 @@ if (params.plink_input && params.phenofile && params.metadata) {
 
             input:
             set file(bed), file(bim), file(fam) from plink
-            file pheno_file from pheno2
+            file(pheno_file) from ch_pheno
 
             output:
             file("snps.txt") into snps
 
             script:
             """
-            plink --bed $bed --bim $bim --fam $fam --pheno $pheno_file --pheno-name PHE --threads ${task.cpus} --assoc --allow-no-sex --out out
+            plink --bed $bed --bim $bim --fam $fam --pheno ${pheno_file} --pheno-name PHE --threads ${task.cpus} --assoc --allow-no-sex --out out
             awk -F' ' '{if(\$9<${params.snp_threshold}) print \$2}' out.assoc > snps.txt
             """
         }
@@ -402,7 +299,7 @@ if (params.plink_input && params.phenofile && params.metadata) {
     """
     mkdir -p assets/
     cp /assets/* assets/
-    phewas.R --pheno_file "$pheno" --geno_file "$genotypes" --n_cpus ${task.cpus} --pheno_codes "$params.pheno_codes"
+    phewas.R --pheno_file "${pheno}" --geno_file "${genotypes}" --n_cpus ${task.cpus} --pheno_codes "$params.pheno_codes"
     """
     }
 

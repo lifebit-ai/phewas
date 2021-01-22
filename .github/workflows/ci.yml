@@ -3,21 +3,6 @@ name: tests for lifebit-ai/phewas
 on: [push, pull_request]
 
 jobs:
-  test_binary_mean_log10_case_vs_control_contrast_icd10_coloc_binary:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nxf_ver: ['20.01.0', '']
-    steps:
-      - uses: actions/checkout@v1
-      - name: Install Nextflow
-        run: |
-          export NXF_VER=${{ matrix.nxf_ver }}
-          wget -qO- get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
-      - name: Binary trait aggregation mean transformation log10 design mode case_vs_control_contrast icd10 coloc binary
-        run: |
-          nextflow run ${GITHUB_WORKSPACE} -profile test_binary_mean_log10_case_vs_control_contrast_icd10_coloc_binary
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -33,66 +18,7 @@ jobs:
       - name: General test with binary trait
         run: |
           nextflow run ${GITHUB_WORKSPACE} -profile test
-  test_agg_max:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nxf_ver: ['20.01.0', '']
-    steps:
-      - uses: actions/checkout@v1
-      - name: Install Nextflow
-        run: |
-          export NXF_VER=${{ matrix.nxf_ver }}
-          wget -qO- get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
-      - name: General test with binary trait and agg max
-        run: |
-          nextflow run ${GITHUB_WORKSPACE} -profile test_agg_max
-  test_agg_mean:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nxf_ver: ['20.01.0', '']
-    steps:
-      - uses: actions/checkout@v1
-      - name: Install Nextflow
-        run: |
-          export NXF_VER=${{ matrix.nxf_ver }}
-          wget -qO- get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
-      - name: General test with binary trait and agg mean
-        run: |
-          nextflow run ${GITHUB_WORKSPACE} -profile test_agg_mean
-  test_agg_median:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nxf_ver: ['20.01.0', '']
-    steps:
-      - uses: actions/checkout@v1
-      - name: Install Nextflow
-        run: |
-          export NXF_VER=${{ matrix.nxf_ver }}
-          wget -qO- get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
-      - name: General test with binary trait and agg median
-        run: |
-          nextflow run ${GITHUB_WORKSPACE} -profile test_agg_median
-  test_agg_min:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nxf_ver: ['20.01.0', '']
-    steps:
-      - uses: actions/checkout@v1
-      - name: Install Nextflow
-        run: |
-          export NXF_VER=${{ matrix.nxf_ver }}
-          wget -qO- get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
-      - name: General test with binary trait and agg min
-        run: |
-          nextflow run ${GITHUB_WORKSPACE} -profile test_agg_min
+  
   test_coloc_binary:
     runs-on: ubuntu-latest
     strategy:
@@ -123,79 +49,3 @@ jobs:
       - name: General test with binary trait and coloc quantitative
         run: |
           nextflow run ${GITHUB_WORKSPACE} -profile test_coloc_quantitative
-  test_tf_log:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nxf_ver: ['20.01.0', '']
-    steps:
-      - uses: actions/checkout@v1
-      - name: Install Nextflow
-        run: |
-          export NXF_VER=${{ matrix.nxf_ver }}
-          wget -qO- get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
-      - name: General test with binary trait and transformation log
-        run: |
-          nextflow run ${GITHUB_WORKSPACE} -profile test_tf_log
-  test_tf_log10:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nxf_ver: ['20.01.0', '']
-    steps:
-      - uses: actions/checkout@v1
-      - name: Install Nextflow
-        run: |
-          export NXF_VER=${{ matrix.nxf_ver }}
-          wget -qO- get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
-      - name: General test with binary trait and transformation log10
-        run: |
-          nextflow run ${GITHUB_WORKSPACE} -profile test_tf_log10
-  test_tf_log2:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nxf_ver: ['20.01.0', '']
-    steps:
-      - uses: actions/checkout@v1
-      - name: Install Nextflow
-        run: |
-          export NXF_VER=${{ matrix.nxf_ver }}
-          wget -qO- get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
-      - name: General test with binary trait and transformation log2
-        run: |
-          nextflow run ${GITHUB_WORKSPACE} -profile test_tf_log2
-  test_tf_zscore:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nxf_ver: ['20.01.0', '']
-    steps:
-      - uses: actions/checkout@v1
-      - name: Install Nextflow
-        run: |
-          export NXF_VER=${{ matrix.nxf_ver }}
-          wget -qO- get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
-      - name: General test with binary trait and transformation zscore
-        run: |
-          nextflow run ${GITHUB_WORKSPACE} -profile test_tf_zscore
-  cont_agg:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nxf_ver: ['20.01.0', '']
-        continuous_var_aggregation: [mean, min, max, median]
-        continuous_var_transformation: [log, log10, log2, zscores, None]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install Nextflow
-        run: |
-          export NXF_VER=${{ matrix.nxf_ver }}
-          wget -qO- get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
-      - name: Run continuous_var_agg test
-        run: nextflow run ${GITHUB_WORKSPACE} --continuous_var_transformation ${{ matrix.continuous_var_transformation }}  --continuous_var_aggregation ${{ matrix.continuous_var_aggregation }} -profile test_agg_min
