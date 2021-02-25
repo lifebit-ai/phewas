@@ -307,7 +307,7 @@ if (params.plink_input && params.input_phenofile && params.input_id_code_count) 
 
     process merge_results {
     publishDir "${params.outdir}/merged_results", mode: 'copy'
-
+    container 'lifebitai/phewas:latest'
     input:
     file("*phewas_result.csv") from results_chr.collect()
 
@@ -331,7 +331,7 @@ if (params.post_analysis == 'coloc'){
 
     process run_coloc {
         publishDir "${params.outdir}/colocalization", mode: "copy"
-        
+        container 'lifebitai/phewas:latest'
         input:
         file gwas_file from gwas_input_ch
         set file(merged_results), file(merged_top_results), file("*png") from plots2
@@ -350,6 +350,7 @@ if (params.post_analysis == 'coloc'){
     process build_report_coloc {
         tag "report"
         publishDir "${params.outdir}/MultiQC", mode: 'copy', pattern: '*.html'
+        container 'lifebitai/phewas:latest'
 
         input:
         set file(coloc_plot), file(coloc_results) from coloc_results_ch
@@ -390,6 +391,7 @@ if (!params.post_analysis){
     process build_report {
         tag "report"
         publishDir "${params.outdir}/MultiQC", mode: 'copy', pattern: '*.html'
+        container 'lifebitai/phewas:latest'
 
         input:
         set file(phewas_results), file(phewas_top_results), file(phewas_plot) from plots
