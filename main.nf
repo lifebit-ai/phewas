@@ -270,6 +270,7 @@ if (params.plink_input && params.input_phenofile && params.input_id_code_count) 
 
     process recode_cb {
     publishDir "${params.outdir}/plink", mode: 'copy'
+    container 'alliecreason/plink:1.90'
 
     input:
     set file(bed), file(bim), file(fam) from plink2
