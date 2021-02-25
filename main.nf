@@ -287,6 +287,7 @@ if (params.plink_input && params.input_phenofile && params.input_id_code_count) 
 
     process phewas_cb {
     publishDir "${params.outdir}/phewas", mode: 'copy'
+    container 'lifebitai/phewas:latest'
     cpus threads
 
     input:
