@@ -12,11 +12,30 @@ nextflow run main.nf --input_phenofile "s3://marcos-lifebit/phewas/cb_binary_phe
 
 ```
 
-# Parameters
+## Parameters
 
-## **ESSENTIAL**
+### **ESSENTIAL**
 
-- **--plink_input** : path/url to CSV file containing chr chunk information, path to aggregated VCFs, VCFs index.
+#### Genomic data
+
+- **--plink_input** : path/url to plink bim bed fam files.
+
+OR:
+
+- **--agg_vcf_file** : path/url to CSV file containing chr chunk information, path to aggregated VCFs, VCFs index.
+
+OR:
+
+- **--individual_vcf_file** : path/url to CSV file containing individual, path to individual VCFs.
+
+OR:
+
+- **--bim** : path/url to bim file.
+- **--bed** : path/url to bed file.
+- **--data** : path/url to fam file.
+
+#### Phenotypic data
+
 - **--input_phenofile** : path/url to file that contains phenotypic information about cohort to be analysed.
 - **--input_id_code_count** : path/url to file that contains patient id, pheno code, counts from phenotypic information.
 - **--pheno_codes** : String containing phenotypic codes to be used. Select from "icd9", "doid", "hpo or "icd10".

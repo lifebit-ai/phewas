@@ -15,29 +15,48 @@
 ---------------------------------------------------*/
 
 ch_pheno = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
+ch_pheno2 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
+ch_pheno3 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
+
 codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
 gwas_input_ch = params.gwas_input ? Channel.value(file(params.gwas_input)) : Channel.empty()
 
-if (params.plink_input){
-Channel
-  .fromFilePairs("${params.plink_input}",size:3, flat : true)
-  .ifEmpty { exit 1, "PLINK files not found: ${params.plink_input}" }
-  .set { plinkCh }
+if (params.agg_vcf_file){
+    Channel.fromPath(params.agg_vcf_file)
+           .ifEmpty { exit 1, "VCF file containing  not found: ${params.agg_vcf_file}" }
+           .into {vcf_file; vcfs_to_split; index_to_split}
+    vcfs_to_split
+        .splitCsv(header: true)
+        .map{ row -> [file(row.vcf)] }
+        .set { vcfs }
+    index_to_split
+        .splitCsv(header: true)
+        .map{ row -> [file(row.index)] }
+        .set { indexes }
 }
 
-if (params.data) {
-    Channel.fromPath(params.data)
-    .ifEmpty { exit 1, "FAM file (w/ header) containing phenotype data not found: ${params.data}" }
-    .set { data }
+if (params.plink_input){
+    Channel
+    .fromFilePairs("${params.plink_input}",size:3, flat : true)
+    .ifEmpty { exit 1, "PLINK files not found: ${params.plink_input}" }
+    .set { plinkCh }
 }
-if (params.vcf_file) {
-    Channel.fromPath(params.vcf_file)
-           .ifEmpty { exit 1, "VCF file containing  not found: ${params.vcf_file}" }
+
+if (params.individual_vcf_file) {
+    Channel.fromPath(params.individual_vcf_file)
+           .ifEmpty { exit 1, "VCF file containing  not found: ${params.individual_vcf_file}" }
            .into { vcf_file; vcfs_to_split }
     vcfs_to_split
         .splitCsv(header: true)
         .map{ row -> [file(row.vcf)] }
         .set { vcfs }
+}
+
+
+if (params.data) {
+    Channel.fromPath(params.data)
+    .ifEmpty { exit 1, "FAM file (w/ header) containing phenotype data not found: ${params.data}" }
+    .set { data }
 }
 if (params.bed) {
     Channel.fromPath(params.bed)
@@ -54,28 +73,54 @@ if (params.snps) {
     .ifEmpty { exit 1, "SNPs of interest file not found: ${params.snps}" }
     .set { snps }
 }
-if (params.pheno_file){
-Channel.fromPath(params.pheno_file)
-    .ifEmpty { exit 1, "Phenotype file not found: ${params.pheno_file}" }
-    .set { pheno }
-}
-
-if (params.mapping){
-Channel.fromPath(params.mapping)
-    .ifEmpty { exit 1, "Mapping file not found: ${params.mapping}" }
-    .set { mapping }
-}
 
 
 // Get as many processors as machine has
 int threads = Runtime.getRuntime().availableProcessors()
 
 /*--------------------------------------------------
-  Using files outside CB
+  Using different formats: vcf & plink
 ---------------------------------------------------*/
+if (params.agg_vcf_file){
+    process merge_agg_vcfs {
+        publishDir 'results'
+        container 'lifebitai/preprocess_gwas:latest'
 
-if (params.vcf_file && !params.input_phenofile && !params.input_id_code_count) {
-    process file_preprocessing {
+        input:
+        file(vcfs) from vcfs.collect()
+        file(indexes) from indexes.collect()
+        file vcf_file from vcf_file
+        file(pheno_file) from ch_pheno3
+ 
+        output:
+        file 'filtered.vcf' into vcf_plink
+
+        script:
+        """
+        # iterate through urls in csv replacing s3 path with the local one
+        urls="\$(tail -n+2 $vcf_file | awk -F',' '{print \$2}')"
+        for url in \$(echo \$urls); do
+            vcf="\${url##*/}"
+            sed -i -e "s~\$url~\$vcf~g" $vcf_file
+        done
+        # bgzip uncompressed vcfs
+        for vcf in \$(tail -n+2 $vcf_file | awk -F',' '{print \$2}'); do
+            if [ \${vcf: -4} == ".vcf" ]; then
+                    bgzip -c \$vcf > \${vcf}.gz
+                    sed -i "s/\$vcf/\${vcf}.gz/g" $vcf_file 
+            fi
+        done
+        #merge vcfs & subset samples
+        vcfs=\$(tail -n+2 $vcf_file | awk -F',' '{print \$2}')
+        bcftools merge --force-samples \$vcfs > merged.vcf
+        sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
+        bcftools view -S sample_file.txt merged.vcf > filtered.vcf
+        """
+    }
+}
+
+if (params.individual_vcf_file) {
+    process merge_ind_vcfs {
         publishDir 'results'
         container 'lifebitai/preprocess_gwas:latest'
 
@@ -85,7 +130,6 @@ if (params.vcf_file && !params.input_phenofile && !params.input_id_code_count) {
 
         output:
         file 'merged.vcf' into vcf_plink
-        file 'sample.phe' into data, data2
 
         script:
         """
@@ -117,21 +161,23 @@ if (params.vcf_file && !params.input_phenofile && !params.input_id_code_count) {
                     echo "2" >> sex.txt
             fi
         done
-        # make fam file & merge vcfs
+        #merge vcfs
         paste -d, sex.txt $vcf_file > tmp.csv && mv tmp.csv $vcf_file
-        make_fam2.py $vcf_file
         vcfs=\$(tail -n+2 $vcf_file | awk -F',' '{print \$3}')
         bcftools merge --force-samples \$vcfs > merged.vcf
         """
     }
 
-    process plink {
+}
+
+if (params.agg_vcf_file || params.individual_vcf_file){
+    process vcf_2_plink {
         publishDir "${params.outdir}/plink", mode: 'copy'
         container 'alliecreason/plink:1.90'
 
         input:
         file vcf from vcf_plink
-        file fam from data
+        file fam from ch_pheno
 
         output:
         set file('*.bed'), file('*.bim'), file('*.fam') into plink, plink2
@@ -148,7 +194,7 @@ if (params.vcf_file && !params.input_phenofile && !params.input_id_code_count) {
     }
 }
 
-if (params.bed && params.bim && params.data && !params.input_phenofile && !params.input_id_code_count) {
+if (params.bed && params.bim && params.data) {
 
     process preprocess_plink {
 
@@ -170,68 +216,9 @@ if (params.bed && params.bim && params.data && !params.input_phenofile && !param
     }
 }
 
-if (!params.input_phenofile && !params.input_id_code_count){
+if (params.plink_input) {
 
-    if (!params.snps) {
-    process get_snps {
-        publishDir 'results', mode: 'copy'
-        container 'alliecreason/plink:1.90'
-
-        input:
-        set file(bed), file(bim), file(fam) from plink
-        file pheno_file from data2
-
-        output:
-        file("snps.txt") into snps
-
-        script:
-        """
-        plink --bed $bed --bim $bim --fam $fam --pheno ${pheno_file} --pheno-name $params.pheno --threads ${task.cpus} --assoc --out out
-        awk -F' ' '{if(\$9<${params.snp_threshold}) print \$2}' out.assoc > snps.txt
-        """
-    }
-    }
-
-    process recode {
-    publishDir "${params.outdir}/plink", mode: 'copy'
-
-    input:
-    set file(bed), file(bim), file(fam) from plink2
-    file snps from snps
-
-    output:
-    file('*.raw') into phewas
-
-    script:
-    """
-    plink --recodeA --bfile ${bed.baseName} --out r_genotypes --extract $snps
-    """
-    }
-
-    process phewas {
-    publishDir "${params.outdir}/phewas", mode: 'copy'
-    cpus threads
-
-    input:
-    file genotypes from phewas
-    file pheno from ch_pheno
-
-    output:
-    set file("*phewas_results.csv") into results_chr
-
-    script:
-    """
-    mkdir -p assets/
-    cp /assets/* assets/
-    phewas.R --pheno_file "$pheno" --geno_file "$genotypes" --n_cpus ${task.cpus} --pheno_codes "$params.pheno_codes"
-    """
-    }
-}
-
-
-if (params.plink_input && params.input_phenofile && params.input_id_code_count) {
-
-    process preprocess_plink_cb {
+    process preprocess_plink_folder {
 
         input:
         set val(name), file(bed), file(bim), file(fam) from plinkCh
@@ -247,45 +234,53 @@ if (params.plink_input && params.input_phenofile && params.input_id_code_count) 
         mv $bim plink.bim
         """
     }
+}
 
-    if (!params.snps) {
-        process get_snps_cb {
-            publishDir 'results', mode: 'copy'
-            container 'alliecreason/plink:1.90'
+/*--------------------------------------------------
+  Prepare resulting plink files
+---------------------------------------------------*/
 
-            input:
-            set file(bed), file(bim), file(fam) from plink
-            file(pheno_file) from ch_pheno
+if (!params.snps) {
+    process get_snps {
+        publishDir 'results', mode: 'copy'
+        container 'alliecreason/plink:1.90'
 
-            output:
-            file("snps.txt") into snps
+        input:
+        set file(bed), file(bim), file(fam) from plink
+        file pheno_file from ch_pheno2
 
-            script:
-            """
-            plink --bed $bed --bim $bim --fam $fam --pheno ${pheno_file} --pheno-name PHE --threads ${task.cpus} --assoc --allow-no-sex --out out
-            awk -F' ' '{if(\$9<${params.snp_threshold}) print \$2}' out.assoc > snps.txt
-            """
-        }
+        output:
+        file("snps.txt") into snps
+
+        script:
+        """
+        plink --bed $bed --bim $bim --fam $fam --pheno ${pheno_file} --pheno-name PHE --threads ${task.cpus} --assoc --out out
+        awk -F' ' '{if(\$9<${params.snp_threshold}) print \$2}' out.assoc > snps.txt
+        """
     }
+}
 
-    process recode_cb {
-    publishDir "${params.outdir}/plink", mode: 'copy'
-    container 'alliecreason/plink:1.90'
+process recode {
+publishDir "${params.outdir}/plink", mode: 'copy'
 
-    input:
-    set file(bed), file(bim), file(fam) from plink2
-    file snps from snps
+input:
+set file(bed), file(bim), file(fam) from plink2
+file snps from snps
 
-    output:
-    file('*.raw') into phewas
+output:
+file('*.raw') into phewas
 
-    script:
-    """
-    plink --recodeA --bfile ${bed.baseName} --out r_genotypes --extract $snps --allow-no-vars
-    """
-    }
+script:
+"""
+plink --recodeA --bfile ${bed.baseName} --out r_genotypes --extract $snps
+"""
+}
 
-    process phewas_cb {
+/*--------------------------------------------------
+  Run phewas
+---------------------------------------------------*/
+
+process phewas {
     publishDir "${params.outdir}/phewas", mode: 'copy'
     container 'lifebitai/phewas:latest'
     cpus threads
@@ -303,9 +298,9 @@ if (params.plink_input && params.input_phenofile && params.input_id_code_count) 
     cp /assets/* assets/
     phewas.R --pheno_file "${pheno}" --geno_file "${genotypes}" --n_cpus ${task.cpus} --pheno_codes "$params.pheno_codes"
     """
-    }
+}
 
-    process merge_results {
+process merge_results {
     publishDir "${params.outdir}/merged_results", mode: 'copy'
     container 'lifebitai/phewas:latest'
     input:
@@ -319,9 +314,47 @@ if (params.plink_input && params.input_phenofile && params.input_id_code_count) 
     plot_merged_results.R
 
     """
-    }
 }
 
+if (!params.post_analysis){
+
+    process build_report {
+        tag "report"
+        publishDir "${params.outdir}/MultiQC", mode: 'copy', pattern: '*.html'
+        container 'lifebitai/phewas:latest'
+
+        input:
+        set file(phewas_results), file(phewas_top_results), file(phewas_plot) from plots
+
+        output:
+        file("multiqc_report.html") into ch_report_outputs
+
+        script:
+
+        """
+        mkdir assets/
+        cp /assets/* assets/
+
+        
+        # Generates the report
+        cp /opt/bin/phewas_report.Rmd .
+        cp /opt/bin/DTable.R .
+        cp /opt/bin/sanitise.R .
+        cp /opt/bin/style.css .
+        cp /opt/bin/logo.png .
+        
+
+        Rscript -e "rmarkdown::render('phewas_report.Rmd', params = list(phewas_manhattan='${phewas_plot}', phewas_results='${phewas_results}', coloc_results='None', coloc_heatmap='None'))"
+        mv phewas_report.html multiqc_report.html
+
+        rm ./DTable.R
+        rm ./sanitise.R
+        rm ./style.css
+        rm ./phewas_report.Rmd
+        """
+    }
+
+}
 
 /*---------------------------------
   Colocalization analysis
@@ -384,45 +417,5 @@ if (params.post_analysis == 'coloc'){
 
         """
     }
-}
-
-if (!params.post_analysis){
-
-    process build_report {
-        tag "report"
-        publishDir "${params.outdir}/MultiQC", mode: 'copy', pattern: '*.html'
-        container 'lifebitai/phewas:latest'
-
-        input:
-        set file(phewas_results), file(phewas_top_results), file(phewas_plot) from plots
-
-        output:
-        file("multiqc_report.html") into ch_report_outputs
-
-        script:
-
-        """
-        mkdir assets/
-        cp /assets/* assets/
-
-        
-        # Generates the report
-        cp /opt/bin/phewas_report.Rmd .
-        cp /opt/bin/DTable.R .
-        cp /opt/bin/sanitise.R .
-        cp /opt/bin/style.css .
-        cp /opt/bin/logo.png .
-        
-
-        Rscript -e "rmarkdown::render('phewas_report.Rmd', params = list(phewas_manhattan='${phewas_plot}', phewas_results='${phewas_results}', coloc_results='None', coloc_heatmap='None'))"
-        mv phewas_report.html multiqc_report.html
-
-        rm ./DTable.R
-        rm ./sanitise.R
-        rm ./style.css
-        rm ./phewas_report.Rmd
-        """
-    }
-
 }
 
