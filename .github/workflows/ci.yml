@@ -30,7 +30,7 @@ jobs:
           export NXF_VER=${{ matrix.nxf_ver }}
           wget -qO- get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
-      - name: General test with binary trait
+      - name: Input bed bim fam files separatedly, with binary trait
         run: |
           nextflow run ${GITHUB_WORKSPACE} -profile test_separated_plink
   test_ind_vcf:
@@ -45,7 +45,7 @@ jobs:
           export NXF_VER=${{ matrix.nxf_ver }}
           wget -qO- get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
-      - name: General test with binary trait
+      - name: Input csv file that points to individual vcf files splitted by sample, binary trait
         run: |
           nextflow run ${GITHUB_WORKSPACE} -profile test_ind_vcf
   test_agg_vcf:
@@ -60,7 +60,7 @@ jobs:
           export NXF_VER=${{ matrix.nxf_ver }}
           wget -qO- get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
-      - name: General test with binary trait
+      - name: Input csv file that points to multisample vcf files splitted by chr, binary trait
         run: |
           nextflow run ${GITHUB_WORKSPACE} -profile test_agg_vcf
   test_coloc_binary:
