@@ -6,6 +6,5 @@ assets/
 .vscode
 *.json
 testdata/plink_old
-testdata/gel
 testdata/gwascat
 testdata/*.*
