@@ -14,7 +14,7 @@ params:
   phewas_results: "top_results.csv"
   coloc_results: 'None'
   coloc_heatmap: 'None'
-title: "`r paste0('Genomics England pheWAS Report' , '') `"
+title: "`r paste0('Lifebit pheWAS report' , '') `"
 author: ""
 date: ""
 ---
