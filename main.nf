@@ -4,7 +4,7 @@
 ========================================================================================
                          lifebit-ai/phewas
 ========================================================================================
- lifebit-ai/phewas pheWAS pipeline built for Genomics England and CloudOS
+ lifebit-ai/phewas pheWAS pipeline
  #### Homepage / Documentation
  https://github.com/lifebit-ai/phewas
 ----------------------------------------------------------------------------------------
