@@ -383,7 +383,6 @@ if (params.post_analysis == 'coloc'){
     process build_report_coloc {
         tag "report"
         publishDir "${params.outdir}/MultiQC", mode: 'copy', pattern: '*.html'
-        container 'lifebitai/phewas:latest'
 
         input:
         set file(coloc_plot), file(coloc_results) from coloc_results_ch
