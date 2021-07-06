@@ -321,7 +321,6 @@ if (!params.post_analysis){
     process build_report {
         tag "report"
         publishDir "${params.outdir}/MultiQC", mode: 'copy', pattern: '*.html'
-        container 'lifebitai/phewas:latest'
 
         input:
         set file(phewas_results), file(phewas_top_results), file(phewas_plot) from plots
