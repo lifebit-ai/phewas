@@ -172,8 +172,9 @@ if (params.individual_vcf_file) {
 
 if (params.agg_vcf_file || params.individual_vcf_file){
     process vcf_2_plink {
+        tag "plink"
         publishDir "${params.outdir}/plink", mode: 'copy'
-        container 'alliecreason/plink:1.90'
+        
 
         input:
         file vcf from vcf_plink
@@ -187,7 +188,9 @@ if (params.agg_vcf_file || params.individual_vcf_file){
         sed '1d' $fam > tmpfile; mv tmpfile $fam
         # remove contigs eg GL000229.1 to prevent errors
         sed -i '/^GL/ d' $vcf
-        plink --vcf $vcf --make-bed
+        plink --keep-allele-order \
+        --vcf $vcf \
+        --make-bed
         rm plink.fam
         mv $fam plink.fam
         """
@@ -242,8 +245,8 @@ if (params.plink_input) {
 
 if (!params.snps) {
     process get_snps {
+        tag "plink"
         publishDir 'results', mode: 'copy'
-        container 'alliecreason/plink:1.90'
 
         input:
         set file(bed), file(bim), file(fam) from plink
@@ -254,7 +257,15 @@ if (!params.snps) {
 
         script:
         """
-        plink --bed $bed --bim $bim --fam $fam --pheno ${pheno_file} --pheno-name PHE --threads ${task.cpus} --assoc --out out
+        plink --keep-allele-order \
+        --bed $bed \
+        --bim $bim \
+        --fam $fam \
+        --pheno ${pheno_file} \
+        --pheno-name PHE \
+        --threads ${task.cpus} \
+        --assoc \
+        --out out
         awk -F' ' '{if(\$9<${params.snp_threshold}) print \$2}' out.assoc > snps.txt
         """
     }
@@ -262,6 +273,7 @@ if (!params.snps) {
 
 process recode {
 publishDir "${params.outdir}/plink", mode: 'copy'
+tag "plink"
 
 input:
 set file(bed), file(bim), file(fam) from plink2
@@ -272,7 +284,11 @@ file('*.raw') into phewas
 
 script:
 """
-plink --recodeA --bfile ${bed.baseName} --out r_genotypes --extract $snps
+plink --keep-allele-order \
+--recodeA \
+--bfile ${bed.baseName} \
+--out r_genotypes \
+--extract $snps
 """
 }
 
