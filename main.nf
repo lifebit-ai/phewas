@@ -93,7 +93,7 @@ if (params.agg_vcf_file){
         file(pheno_file) from ch_pheno3
  
         output:
-        file 'filtered.vcf' into vcf_plink
+        file 'filtered.vcf' into vcf_plink, vcf_to_annotate_ch
 
         script:
         """
@@ -116,6 +116,21 @@ if (params.agg_vcf_file){
         sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
         bcftools view -S sample_file.txt merged.vcf > filtered.vcf
         """
+    }
+    if (params.cpra_annotate) {
+        process cpra_annotate {
+            container 'lifebitai/preprocess_gwas:latest'
+
+            input:
+            file(vcf) from vcf_to_annotate_ch
+            output:
+            file("annotated.vcf.gz") into annotated_vcf_ch
+
+            script:
+            """
+            bcftools annotate --set-id +'%CHROM-%POS-%REF-%FIRST_ALT' $vcf -Oz -o annotated.vcf.gz
+            """
+        }
     }
 }
 
@@ -170,7 +185,7 @@ if (params.individual_vcf_file) {
 
 }
 
-if (params.agg_vcf_file || params.individual_vcf_file){
+if (params.agg_vcf_file || params.individual_vcf_file) {
     process vcf_2_plink {
         tag "plink"
         publishDir "${params.outdir}/plink", mode: 'copy'
