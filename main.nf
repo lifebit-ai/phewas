@@ -190,7 +190,8 @@ if (params.agg_vcf_file || params.individual_vcf_file){
         sed -i '/^GL/ d' $vcf
         plink --keep-allele-order \
         --vcf $vcf \
-        --make-bed
+        --make-bed \
+        --vcf-half-call m
         rm plink.fam
         mv $fam plink.fam
         """
