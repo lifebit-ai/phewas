@@ -112,7 +112,7 @@ if (params.agg_vcf_file){
         done
         #merge vcfs & subset samples
         vcfs=\$(tail -n+2 $vcf_file | awk -F',' '{print \$2}')
-        bcftools merge --force-samples \$vcfs > merged.vcf
+        bcftools concat \$vcfs > merged.vcf
         sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
         bcftools view -S sample_file.txt merged.vcf > filtered.vcf
         """
