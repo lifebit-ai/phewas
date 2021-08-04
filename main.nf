@@ -83,7 +83,6 @@ int threads = Runtime.getRuntime().availableProcessors()
 ---------------------------------------------------*/
 if (params.agg_vcf_file){
     process merge_agg_vcfs {
-        publishDir 'results'
         container 'lifebitai/preprocess_gwas:latest'
 
         input:
@@ -116,7 +115,6 @@ if (params.agg_vcf_file){
 
 if (params.individual_vcf_file) {
     process merge_ind_vcfs {
-        publishDir 'results'
         container 'lifebitai/preprocess_gwas:latest'
 
         input:
@@ -280,7 +278,6 @@ if (params.plink_input) {
 if (!params.snps) {
     process get_snps {
         tag "plink"
-        publishDir 'results', mode: 'copy'
 
         input:
         set file(bed), file(bim), file(fam) from plink
