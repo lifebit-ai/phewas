@@ -167,7 +167,6 @@ if (params.agg_vcf_file || params.individual_vcf_file){
 
         input:
         file(vcfs) from vcfs.collect()
-        file(indexes) from indexes.collect()
         file vcf_list from updated_vcf_list
         file pheno_file from ch_pheno3
 
@@ -182,6 +181,7 @@ if (params.agg_vcf_file || params.individual_vcf_file){
                     bgzip -c \$vcf > \${vcf}.gz
                 fi
             done
+            for i in *.vcf.gz; do bcftools index \${i}; done
             vcfs_to_combine=\$(find . -name '*.vcf.gz'| paste -sd " ")
             sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
             bcftools concat \${vcfs_to_combine} -Oz -o merged.vcf.gz
@@ -194,6 +194,7 @@ if (params.agg_vcf_file || params.individual_vcf_file){
                     bgzip -c \$vcf > \${vcf}.gz
                 fi
             done
+            for i in *.vcf.gz; do bcftools index \${i}; done
             vcfs_to_combine=\$(find . -name '*.vcf.gz'| paste -sd " ")
             bcftools merge --force-samples \${vcfs_to_combine} -Oz -o merged.vcf.gz
             sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
