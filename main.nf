@@ -185,8 +185,9 @@ if (params.agg_vcf_file || params.individual_vcf_file){
                     bgzip -c \$vcf > \${vcf}.gz
                 fi
             done
+            vcfs_to_combine=\$(find . -name '*.vcf.gz'| paste -sd " ")
             sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
-            bcftools concat ${vcfs} -Oz -o merged.vcf.gz
+            bcftools concat \${vcfs_to_combine} -Oz -o merged.vcf.gz
             bcftools view -S sample_file.txt merged.vcf.gz -Oz -o filtered_by_sample.vcf.gz
             """
         else if ( !params.concat_vcfs )
@@ -196,7 +197,8 @@ if (params.agg_vcf_file || params.individual_vcf_file){
                     bgzip -c \$vcf > \${vcf}.gz
                 fi
             done
-            bcftools merge --force-samples ${vcfs} -Oz -o merged.vcf.gz
+            vcfs_to_combine=\$(find . -name '*.vcf.gz'| paste -sd " ")
+            bcftools merge --force-samples \${vcfs_to_combine} -Oz -o merged.vcf.gz
             sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
             bcftools view -S sample_file.txt merged.vcf.gz -Oz -o filtered_by_sample.vcf.gz
             """
