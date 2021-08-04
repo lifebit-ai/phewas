@@ -49,7 +49,7 @@ if (params.individual_vcf_file) {
     vcfs_to_split
         .splitCsv(header: true)
         .map{ row -> [file(row.vcf)] }
-        .set { vcfs }
+        .into { vcfs; vcf_ind}
 }
 
 
@@ -118,11 +118,10 @@ if (params.individual_vcf_file) {
         container 'lifebitai/preprocess_gwas:latest'
 
         input:
-        file vcfs from vcfs.collect()
+        file vcfs from vcf_ind.collect()
         file vcf_file from vcf_file
 
         output:
-        file '*.vcf.gz' into vcfs_to_combine_ch
         file 'vcf_files.txt' into updated_vcf_list
 
         script:
