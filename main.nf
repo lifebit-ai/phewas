@@ -24,7 +24,7 @@ gwas_input_ch = params.gwas_input ? Channel.value(file(params.gwas_input)) : Cha
 if (params.agg_vcf_file){
     Channel.fromPath(params.agg_vcf_file)
            .ifEmpty { exit 1, "VCF file containing  not found: ${params.agg_vcf_file}" }
-           .into {vcf_file; vcfs_to_split; index_to_split}
+           .into {vcf_file; vcfs_to_split; index_to_split; vcf_file_to_combine}
     vcfs_to_split
         .splitCsv(header: true)
         .map{ row -> [file(row.vcf)] }
@@ -45,7 +45,7 @@ if (params.plink_input){
 if (params.individual_vcf_file) {
     Channel.fromPath(params.individual_vcf_file)
            .ifEmpty { exit 1, "VCF file containing  not found: ${params.individual_vcf_file}" }
-           .into { vcf_file; vcfs_to_split }
+           .into { vcf_file; vcfs_to_split; vcf_file_to_combine }
     vcfs_to_split
         .splitCsv(header: true)
         .map{ row -> [file(row.vcf)] }
@@ -87,13 +87,12 @@ if (params.agg_vcf_file){
         container 'lifebitai/preprocess_gwas:latest'
 
         input:
-        file(vcfs) from vcfs.collect()
-        file(indexes) from indexes.collect()
         file vcf_file from vcf_file
-        file(pheno_file) from ch_pheno3
  
         output:
-        file 'filtered.vcf' into vcf_plink
+        
+        file 'vcf_files.txt' into updated_vcf_list
+
 
         script:
         """
@@ -110,11 +109,7 @@ if (params.agg_vcf_file){
                     sed -i "s/\$vcf/\${vcf}.gz/g" $vcf_file 
             fi
         done
-        #merge vcfs & subset samples
-        vcfs=\$(tail -n+2 $vcf_file | awk -F',' '{print \$2}')
-        bcftools merge --force-samples \$vcfs > merged.vcf
-        sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
-        bcftools view -S sample_file.txt merged.vcf > filtered.vcf
+        tail -n+2 $vcf_file| awk -F',' '{print \$2}' > vcf_files.txt
         """
     }
 }
@@ -129,7 +124,8 @@ if (params.individual_vcf_file) {
         file vcf_file from vcf_file
 
         output:
-        file 'merged.vcf' into vcf_plink
+        file '*.vcf.gz' into vcfs_to_combine_ch
+        file 'vcf_files.txt' into updated_vcf_list
 
         script:
         """
@@ -142,7 +138,6 @@ if (params.individual_vcf_file) {
         # bgzip uncompressed vcfs
         for vcf in \$(tail -n+2 $vcf_file | awk -F',' '{print \$2}'); do
             if [ \${vcf: -4} == ".vcf" ]; then
-                    bgzip -c \$vcf > \${vcf}.gz
                     sed -i "s/\$vcf/\${vcf}.gz/g" $vcf_file 
             fi
         done
@@ -161,16 +156,52 @@ if (params.individual_vcf_file) {
                     echo "2" >> sex.txt
             fi
         done
-        #merge vcfs
         paste -d, sex.txt $vcf_file > tmp.csv && mv tmp.csv $vcf_file
-        vcfs=\$(tail -n+2 $vcf_file | awk -F',' '{print \$3}')
-        bcftools merge --force-samples \$vcfs > merged.vcf
+        tail -n+2 $vcf_file | awk -F',' '{print \$3}' > vcf_files.txt
         """
     }
 
 }
 
 if (params.agg_vcf_file || params.individual_vcf_file){
+
+    process combine_vcfs {
+        publishDir "${params.outdir}/vcf", mode: 'copy'
+
+        input:
+        file(vcfs) from vcfs.collect()
+        file(indexes) from indexes.collect()
+        file vcf_list from updated_vcf_list
+        file pheno_file from ch_pheno3
+
+        output:
+        file 'filtered_by_sample.vcf.gz' into vcf_plink
+
+        script:
+        if ( params.concat_vcfs )
+            """
+            for vcf in ${vcfs}; do
+                if [ \${vcf} == *vcf ]; then
+                    bgzip -c \$vcf > \${vcf}.gz
+                fi
+            done
+            sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
+            bcftools concat ${vcfs} -Oz -o merged.vcf.gz
+            bcftools view -S sample_file.txt merged.vcf.gz -Oz -o filtered_by_sample.vcf.gz
+            """
+        else if ( !params.concat_vcfs )
+            """
+            for vcf in ${vcfs}; do
+                if [ \${vcf} == *vcf ]; then
+                    bgzip -c \$vcf > \${vcf}.gz
+                fi
+            done
+            bcftools merge --force-samples ${vcfs} -Oz -o merged.vcf.gz
+            sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
+            bcftools view -S sample_file.txt merged.vcf.gz -Oz -o filtered_by_sample.vcf.gz
+            """
+    }
+
     process vcf_2_plink {
         tag "plink"
         publishDir "${params.outdir}/plink", mode: 'copy'
