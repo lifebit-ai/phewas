@@ -16,43 +16,56 @@ def helpMessage() {
     phewas - A pipeline for running pheWAS adapted for vcf and plink inputs.
     Usage:
     The typical command for running the pipeline is as follows:
-    nextflow run main.nf --input reads.csv [Options]
+    nextflow run main.nf --plink_input /path/plink.{bed,bim,fam} –-input_phenofile pheno.phe  \
+    –-input_id_code_count icd10_id_code_count.csv –-pheno_codes "icd10" [Options]
     
-    Inputs Options:
-    --input         A csv file with paths to fastq.gz or a list SRA accession.
-                    [Required] (Default: None)
-    Reference Options:
-    --genome        A reference genome. Available - 'GRCh37' and 'GRCh38'
-                    This options handles all other require reference and make sure the builds are up-to-date
-                    [Required] (Default: 'GRCh38')
-    --genome_fasta  A genome fasta file
-                    [Optional if --genome provided]
-    --anno_gtf      A annotation GTF file
-                    [Optional if --genome provided]
-    --star_index    STAR index. 
-                    (Make sure the build done with STAR: v2.7.1a)
-                    [Optional if --genome provided]
-    --ctat_genome_lib CTAT genome library for STAR-Fusion
-                    (Make sure the build done with STAR: v2.7.1a and STAR-Fusion: v1.7.0)
-                    [Optional if --genome provided]
-    
-    Parabricks Options:
-    --chim_enable_star_options  
-                    All the options related to Chimeric junction out in STAR aligner
-                    This also decides if the rna-fusion calling going to happen or not.
-                    (Default: "--min-chim-segment 12 --min-chim-overhang 8 --out-chim-format 1")
-    Additonal Options:
-    --outdir        A output directory
-                    [Default: 'results']
-    --help          This help menu
-    Resource Options:
-    --max_cpus      Maximum number of CPUs (int)
-                    (default: $params.max_cpus)  
-    --max_memory    Maximum memory (memory unit)
-                    (default: $params.max_memory)
-    --max_time      Maximum time (time unit)
-                    (default: $params.max_time)
-    See here for more info: docs/usage.md
+    Essential parameters:
+
+    Genomic data
+
+    –-plink_input : Path/URL to plink bim bed fam files, in format /path/plink.{bed,bim,fam}
+
+    OR:
+
+    –-agg_vcf_file : Path/URL to .csv file containing chr chunk information, path to aggregated VCFs, VCFs index. Columns must include chr,vcf,index.
+
+    OR:
+
+    –-individual_vcf_file : Path/URL to .csv file containing individual, path to individual VCFs.
+
+    OR:
+
+    –-bim : Path/URL to bim file.
+
+    –-bed : Path/URL to bed file.
+
+    –-fam : Path/URL to fam file.
+
+    Phenotypic data options:
+
+    –-input_phenofile : Path/URL to file that contains phenotypic information about cohort to be analysed.
+
+    –-input_id_code_count : Path/URL to file that contains patient id, pheno code, counts from phenotypic information.
+
+    –-pheno_codes : String containing phenotypic codes to be used. Select from “icd9”, “doid”, “hpo or “icd10”.
+
+    Optional:
+
+    –-snps : File containing list of SNPs to be tested.
+
+    –-snp_p_val_threshold : Threshold to select SNPs significance from plink association analysis if snps are not provided. Defaults to 0.05
+
+    –-outdir : Output directory for results.
+
+    –-output_tag : Prefix to identify output files.
+
+    –-post_analysis : String containing type of posterior analysis to be executed. Only option is "coloc"
+
+    –-gwas_input : Path to file containing GWAS summary statistics.
+
+    –-gwas_trait_type : String containing type of trait in GWAS. Accepts "binary" or "quantitative".
+
+
     """.stripIndent()
 }
 
@@ -107,21 +120,21 @@ ch_pheno = params.input_phenofile ? Channel.value(file(params.input_phenofile)) 
 ch_pheno2 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
 ch_pheno3 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
 
-codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
-gwas_input_ch = params.gwas_input ? Channel.value(file(params.gwas_input)) : Channel.empty()
+ch_codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
+ch_gwas_input = params.gwas_input ? Channel.value(file(params.gwas_input)) : Channel.empty()
 
 if (params.agg_vcf_file){
     Channel.fromPath(params.agg_vcf_file)
            .ifEmpty { exit 1, "VCF file containing  not found: ${params.agg_vcf_file}" }
-           .into {vcf_file; vcfs_to_split; index_to_split}
-    vcfs_to_split
+           .into {ch_vcf_file; ch_vcfs_to_split; ch_index_to_split}
+    ch_vcfs_to_split
         .splitCsv(header: true)
         .map{ row -> [file(row.vcf)] }
-        .set { vcfs }
-    index_to_split
+        .set { ch_vcfs }
+    ch_index_to_split
         .splitCsv(header: true)
         .map{ row -> [file(row.index)] }
-        .set { indexes }
+        .set { ch_indexes }
 }
 
 if (params.plink_input){
@@ -134,33 +147,33 @@ if (params.plink_input){
 if (params.individual_vcf_file) {
     Channel.fromPath(params.individual_vcf_file)
            .ifEmpty { exit 1, "VCF file containing  not found: ${params.individual_vcf_file}" }
-           .into { vcf_file; vcfs_to_split }
-    vcfs_to_split
+           .into { ch_vcf_file; ch_vcfs_to_split }
+    ch_vcfs_to_split
         .splitCsv(header: true)
         .map{ row -> [file(row.vcf)] }
-        .set { vcfs }
+        .set { ch_vcfs }
 }
 
 
 if (params.fam) {
     Channel.fromPath(params.fam)
     .ifEmpty { exit 1, "FAM file (w/ header) containing phenotype info not found: ${params.fam}" }
-    .set { fam }
+    .set { ch_fam }
 }
 if (params.bed) {
     Channel.fromPath(params.bed)
         .ifEmpty { exit 1, "PLINK binary pedigree file not found: ${params.bed}" }
-        .set { bed }
+        .set { ch_bed }
 }
 if (params.bim) {
     Channel.fromPath(params.bim)
         .ifEmpty { exit 1, "PLINK BIM file not found: ${params.bim}" }
-        .set { bim }
+        .set { ch_bim }
 }
 if (params.snps) {
     Channel.fromPath(params.snps)
     .ifEmpty { exit 1, "SNPs of interest file not found: ${params.snps}" }
-    .set { snps }
+    .set { ch_snps }
 }
 
 
@@ -174,13 +187,13 @@ if (params.agg_vcf_file){
     process merge_agg_vcfs {
 
         input:
-        file(vcfs) from vcfs.collect()
-        file(indexes) from indexes.collect()
-        file vcf_file from vcf_file
+        file(vcfs) from ch_vcfs.collect()
+        file(indexes) from ch_indexes.collect()
+        file vcf_file from ch_vcf_file
         file(pheno_file) from ch_pheno3
  
         output:
-        file 'filtered.vcf' into vcf_plink
+        file 'filtered.vcf' into ch_vcf_plink
 
         script:
         """
@@ -208,13 +221,14 @@ if (params.agg_vcf_file){
 
 if (params.individual_vcf_file) {
     process merge_ind_vcfs {
+        label 'file_preprocessing'
 
         input:
-        file vcfs from vcfs.collect()
-        file vcf_file from vcf_file
+        file vcfs from ch_vcfs.collect()
+        file vcf_file from ch_vcf_file
 
         output:
-        file 'merged.vcf' into vcf_plink
+        file 'merged.vcf' into ch_vcf_plink
 
         script:
         """
@@ -261,11 +275,11 @@ if (params.agg_vcf_file || params.individual_vcf_file){
         
 
         input:
-        file vcf from vcf_plink
+        file vcf from ch_vcf_plink
         file fam from ch_pheno
 
         output:
-        set file('*.bed'), file('*.bim'), file('*.fam') into plink, plink2
+        set file('*.bed'), file('*.bim'), file('*.fam') into ch_plink, ch_plink2
 
         script:
         """
@@ -287,12 +301,12 @@ if (params.bed && params.bim && params.fam) {
     process preprocess_plink {
 
         input:
-        file bed from bed
-        file bim from bim
-        file fam from fam
+        file bed from ch_bed
+        file bim from ch_bim
+        file fam from ch_fam
 
         output:
-        set file('*.bed'), file('*.bim'), file('*.fam') into plink, plink2
+        set file('*.bed'), file('*.bim'), file('*.fam') into ch_plink, ch_plink2
 
         script:
         """
@@ -312,7 +326,7 @@ if (params.plink_input) {
         set val(name), file(bed), file(bim), file(fam) from plinkCh
 
         output:
-        set file('*.bed'), file('*.bim'), file('*.fam') into plink, plink2
+        set file('*.bed'), file('*.bim'), file('*.fam') into ch_plink, ch_plink2
 
         script:
         """
@@ -333,11 +347,11 @@ if (!params.snps) {
         tag "plink"
 
         input:
-        set file(bed), file(bim), file(fam) from plink
+        set file(bed), file(bim), file(fam) from ch_plink
         file pheno_file from ch_pheno2
 
         output:
-        file("snps.txt") into snps
+        file("snps.txt") into ch_snps
 
         script:
         """
@@ -359,8 +373,8 @@ process recode {
 tag "plink"
 
 input:
-set file(bed), file(bim), file(fam) from plink2
-file snps from snps
+set file(bed), file(bim), file(fam) from ch_plink2
+file snps from ch_snps
 
 output:
 file('*.raw') into phewas
@@ -384,7 +398,7 @@ process phewas {
 
     input:
     file genotypes from phewas
-    file pheno from codes_pheno
+    file pheno from ch_codes_pheno
 
     output:
     file("*phewas_results.csv") into results_chr
@@ -462,7 +476,7 @@ if (params.post_analysis == 'coloc'){
         publishDir "${params.outdir}/colocalization", mode: "copy"
 
         input:
-        file gwas_file from gwas_input_ch
+        file gwas_file from ch_gwas_input
         set file(merged_results), file(merged_top_results), file("*png") from plots2
 
         output:
