@@ -151,7 +151,7 @@ if (params.individual_vcf_file) {
     ch_vcfs_to_split
         .splitCsv(header: true)
         .map{ row -> [file(row.vcf)] }
-        .set { ch_vcfs }
+        .into { ch_vcfs; ch_vcf_ind }
 }
 
 
@@ -188,6 +188,7 @@ if (params.agg_vcf_file){
 
         input:
         file vcf_file from ch_vcf_file
+        
  
         output:
         
@@ -219,11 +220,11 @@ if (params.individual_vcf_file) {
         label 'file_preprocessing'
 
         input:
-        file vcfs from ch_vcfs.collect()
         file vcf_file from ch_vcf_file
+        file vcfs from ch_vcf_ind.collect()
 
         output:
-        file 'merged.vcf' into ch_vcf_plink
+        file 'vcf_files.txt' into ch_updated_vcf_list
 
         script:
         """
@@ -267,12 +268,12 @@ if (params.agg_vcf_file || params.individual_vcf_file){
         publishDir "${params.outdir}/vcf", mode: 'copy'
 
         input:
-        file(vcfs) from vcfs.collect()
-        file vcf_list from updated_vcf_list
+        file(vcfs) from ch_vcfs.collect()
+        file vcf_list from  ch_updated_vcf_list
         file pheno_file from ch_pheno3
 
         output:
-        file 'filtered_by_sample.vcf.gz' into vcf_plink
+        file 'filtered_by_sample.vcf.gz' into ch_vcf_plink
 
         script:
         if ( params.concat_vcfs )
