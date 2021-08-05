@@ -27,43 +27,19 @@ def helpMessage() {
 
     OR:
 
-    –-agg_vcf_file : Path/URL to .csv file containing chr chunk information, path to aggregated VCFs, VCFs index. Columns must include chr,vcf,index.
-
-    OR:
-
-    –-individual_vcf_file : Path/URL to .csv file containing individual, path to individual VCFs.
-
-    OR:
-
     –-bim : Path/URL to bim file.
 
     –-bed : Path/URL to bed file.
 
     –-fam : Path/URL to fam file.
 
-    Phenotypic data options:
+    OR:
 
-    –-input_phenofile : Path/URL to file that contains phenotypic information about cohort to be analysed.
+    –-agg_vcf_file : Path/URL to .csv file containing chr chunk information, path to aggregated VCFs, VCFs index. Columns must include chr,vcf,index.
 
-    –-input_id_code_count : Path/URL to file that contains patient id, pheno code, counts from phenotypic information.
+    OR:
 
-    –-pheno_codes : String containing phenotypic codes to be used. Select from “icd9”, “doid”, “hpo or “icd10”.
-
-    Optional:
-
-    –-snps : File containing list of SNPs to be tested.
-
-    –-snp_p_val_threshold : Threshold to select SNPs significance from plink association analysis if snps are not provided. Defaults to 0.05
-
-    –-outdir : Output directory for results.
-
-    –-output_tag : Prefix to identify output files.
-
-    –-post_analysis : String containing type of posterior analysis to be executed. Only option is "coloc"
-
-    –-gwas_input : Path to file containing GWAS summary statistics.
-
-    –-gwas_trait_type : String containing type of trait in GWAS. Accepts "binary" or "quantitative".
+    –-individual_vcf_file : Path/URL to .csv file containing individual, path to individual VCFs.
 
 
     """.stripIndent()
@@ -116,9 +92,14 @@ log.info "-\033[2m--------------------------------------------------\033[0m-"
   Channel setup
 ---------------------------------------------------*/
 
-ch_pheno = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
-ch_pheno2 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
-ch_pheno3 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
+//ch_pheno = params.input_phenofile ? Channel.value(file(params.input_phenofile)).into{ch_pheno; ch_pheno2; ch_pheno3} : Channel.empty()
+if (params.input_phenofile){
+    Channel.fromPath(params.input_phenofile)
+           .ifEmpty { "Phenotype file not found" }
+           .into{ ch_pheno; ch_pheno2; ch_pheno3 }
+}
+//ch_pheno2 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
+//ch_pheno3 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
 
 ch_codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
 ch_gwas_input = params.gwas_input ? Channel.value(file(params.gwas_input)) : Channel.empty()
