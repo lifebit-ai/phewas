@@ -10,29 +10,112 @@
 ----------------------------------------------------------------------------------------
 */
 
+
+def helpMessage() {
+    log.info """
+    phewas - A pipeline for running pheWAS adapted for vcf and plink inputs.
+    Usage:
+    The typical command for running the pipeline is as follows:
+    nextflow run main.nf --plink_input /path/plink.{bed,bim,fam} –-input_phenofile pheno.phe  \
+    –-input_id_code_count icd10_id_code_count.csv –-pheno_codes "icd10" [Options]
+    
+    Essential parameters:
+
+    Genomic data
+
+    –-plink_input : Path/URL to plink bim bed fam files, in format /path/plink.{bed,bim,fam}
+
+    OR:
+
+    –-bim : Path/URL to bim file.
+
+    –-bed : Path/URL to bed file.
+
+    –-fam : Path/URL to fam file.
+
+    OR:
+
+    –-agg_vcf_file : Path/URL to .csv file containing chr chunk information, path to aggregated VCFs, VCFs index. Columns must include chr,vcf,index.
+
+    OR:
+
+    –-individual_vcf_file : Path/URL to .csv file containing individual, path to individual VCFs.
+
+
+    """.stripIndent()
+}
+
+// Show help message
+if (params.help) {
+  helpMessage()
+  exit 0
+}
+
+// Header log info
+
+def summary = [:]
+
+if (workflow.revision) summary['Pipeline Release'] = workflow.revision
+
+summary['Output dir']                                  = params.outdir
+summary['Launch dir']                                  = workflow.launchDir
+summary['Working dir']                                 = workflow.workDir
+summary['Script dir']                                  = workflow.projectDir
+summary['User']                                        = workflow.userName
+
+summary['input_phenofile']                             = params.input_phenofile
+summary['input_id_code_count']                         = params.input_id_code_count
+
+summary['individual_vcf_file']                         = params.individual_vcf_file
+summary['agg_vcf_file']                = params.agg_vcf_file
+summary['plink_input'] = params.plink_input
+summary['fam']                 = params.fam
+summary['bed']                 = params.bed
+summary['bim']                 = params.bim
+
+
+summary['snps'] =  params.snps
+summary['snp_threshold'] = params.snp_threshold
+summary['pheno_file'] = params.pheno_file
+summary['pheno_codes'] = params.pheno_codes
+summary['post_analysis'] = params.post_analysis
+summary['gwas_input'] = params.gwas_input
+summary['gwas_trait_type'] = params.gwas_trait_type
+
+
+
+
+log.info summary.collect { k,v -> "${k.padRight(18)}: $v" }.join("\n")
+log.info "-\033[2m--------------------------------------------------\033[0m-"
+
 /*--------------------------------------------------
   Channel setup
 ---------------------------------------------------*/
 
-ch_pheno = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
-ch_pheno2 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
-ch_pheno3 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
+//ch_pheno = params.input_phenofile ? Channel.value(file(params.input_phenofile)).into{ch_pheno; ch_pheno2; ch_pheno3} : Channel.empty()
+if (params.input_phenofile){
+    Channel.fromPath(params.input_phenofile)
+           .ifEmpty { "Phenotype file not found" }
+           .into{ ch_pheno; ch_pheno2; ch_pheno3 }
+}
+//ch_pheno2 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
+//ch_pheno3 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
 
-codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
-gwas_input_ch = params.gwas_input ? Channel.value(file(params.gwas_input)) : Channel.empty()
+ch_codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
+ch_gwas_input = params.gwas_input ? Channel.value(file(params.gwas_input)) : Channel.empty()
 
 if (params.agg_vcf_file){
     Channel.fromPath(params.agg_vcf_file)
            .ifEmpty { exit 1, "VCF file containing  not found: ${params.agg_vcf_file}" }
-           .into {vcf_file; vcfs_to_split; index_to_split; vcf_file_to_combine}
-    vcfs_to_split
+           .into {ch_vcf_file; ch_vcfs_to_split; ch_index_to_split}
+    ch_vcfs_to_split
         .splitCsv(header: true)
         .map{ row -> [file(row.vcf)] }
-        .set { vcfs }
-    index_to_split
+        .set { ch_vcfs }
+    ch_index_to_split
         .splitCsv(header: true)
         .map{ row -> [file(row.index)] }
-        .set { indexes }
+        .set { ch_indexes }
 }
 
 if (params.plink_input){
@@ -45,33 +128,33 @@ if (params.plink_input){
 if (params.individual_vcf_file) {
     Channel.fromPath(params.individual_vcf_file)
            .ifEmpty { exit 1, "VCF file containing  not found: ${params.individual_vcf_file}" }
-           .into { vcf_file; vcfs_to_split; vcf_file_to_combine }
-    vcfs_to_split
+           .into { ch_vcf_file; ch_vcfs_to_split }
+    ch_vcfs_to_split
         .splitCsv(header: true)
         .map{ row -> [file(row.vcf)] }
-        .into { vcfs; vcf_ind}
+        .into { ch_vcfs; ch_vcf_ind }
 }
 
 
-if (params.data) {
-    Channel.fromPath(params.data)
-    .ifEmpty { exit 1, "FAM file (w/ header) containing phenotype data not found: ${params.data}" }
-    .set { data }
+if (params.fam) {
+    Channel.fromPath(params.fam)
+    .ifEmpty { exit 1, "FAM file (w/ header) containing phenotype info not found: ${params.fam}" }
+    .set { ch_fam }
 }
 if (params.bed) {
     Channel.fromPath(params.bed)
         .ifEmpty { exit 1, "PLINK binary pedigree file not found: ${params.bed}" }
-        .set { bed }
+        .set { ch_bed }
 }
 if (params.bim) {
     Channel.fromPath(params.bim)
         .ifEmpty { exit 1, "PLINK BIM file not found: ${params.bim}" }
-        .set { bim }
+        .set { ch_bim }
 }
 if (params.snps) {
     Channel.fromPath(params.snps)
     .ifEmpty { exit 1, "SNPs of interest file not found: ${params.snps}" }
-    .set { snps }
+    .set { ch_snps }
 }
 
 
@@ -83,15 +166,14 @@ int threads = Runtime.getRuntime().availableProcessors()
 ---------------------------------------------------*/
 if (params.agg_vcf_file){
     process merge_agg_vcfs {
-        container 'lifebitai/preprocess_gwas:latest'
 
         input:
-        file vcf_file from vcf_file
+        file vcf_file from ch_vcf_file
+        
  
         output:
         
-        file 'vcf_files.txt' into updated_vcf_list
-
+        file 'vcf_files.txt' into ch_updated_vcf_list
 
         script:
         """
@@ -115,14 +197,15 @@ if (params.agg_vcf_file){
 
 if (params.individual_vcf_file) {
     process merge_ind_vcfs {
-        container 'lifebitai/preprocess_gwas:latest'
+
+        label 'file_preprocessing'
 
         input:
-        file vcfs from vcf_ind.collect()
-        file vcf_file from vcf_file
+        file vcf_file from ch_vcf_file
+        file vcfs from ch_vcf_ind.collect()
 
         output:
-        file 'vcf_files.txt' into updated_vcf_list
+        file 'vcf_files.txt' into ch_updated_vcf_list
 
         script:
         """
@@ -166,12 +249,12 @@ if (params.agg_vcf_file || params.individual_vcf_file){
         publishDir "${params.outdir}/vcf", mode: 'copy'
 
         input:
-        file(vcfs) from vcfs.collect()
-        file vcf_list from updated_vcf_list
+        file(vcfs) from ch_vcfs.collect()
+        file vcf_list from  ch_updated_vcf_list
         file pheno_file from ch_pheno3
 
         output:
-        file 'filtered_by_sample.vcf.gz' into vcf_plink
+        file 'filtered_by_sample.vcf.gz' into ch_vcf_plink
 
         script:
         if ( params.concat_vcfs )
@@ -204,15 +287,14 @@ if (params.agg_vcf_file || params.individual_vcf_file){
 
     process vcf_2_plink {
         tag "plink"
-        publishDir "${params.outdir}/plink", mode: 'copy'
         
 
         input:
-        file vcf from vcf_plink
+        file vcf from ch_vcf_plink
         file fam from ch_pheno
 
         output:
-        set file('*.bed'), file('*.bim'), file('*.fam') into plink, plink2
+        set file('*.bed'), file('*.bim'), file('*.fam') into ch_plink, ch_plink2
 
         script:
         """
@@ -229,17 +311,17 @@ if (params.agg_vcf_file || params.individual_vcf_file){
     }
 }
 
-if (params.bed && params.bim && params.data) {
+if (params.bed && params.bim && params.fam) {
 
     process preprocess_plink {
 
         input:
-        file bed from bed
-        file bim from bim
-        file fam from data
+        file bed from ch_bed
+        file bim from ch_bim
+        file fam from ch_fam
 
         output:
-        set file('*.bed'), file('*.bim'), file('*.fam') into plink, plink2
+        set file('*.bed'), file('*.bim'), file('*.fam') into ch_plink, ch_plink2
 
         script:
         """
@@ -259,7 +341,7 @@ if (params.plink_input) {
         set val(name), file(bed), file(bim), file(fam) from plinkCh
 
         output:
-        set file('*.bed'), file('*.bim'), file('*.fam') into plink, plink2
+        set file('*.bed'), file('*.bim'), file('*.fam') into ch_plink, ch_plink2
 
         script:
         """
@@ -280,11 +362,11 @@ if (!params.snps) {
         tag "plink"
 
         input:
-        set file(bed), file(bim), file(fam) from plink
+        set file(bed), file(bim), file(fam) from ch_plink
         file pheno_file from ch_pheno2
 
         output:
-        file("snps.txt") into snps
+        file("snps.txt") into ch_snps
 
         script:
         """
@@ -303,12 +385,11 @@ if (!params.snps) {
 }
 
 process recode {
-publishDir "${params.outdir}/plink", mode: 'copy'
 tag "plink"
 
 input:
-set file(bed), file(bim), file(fam) from plink2
-file snps from snps
+set file(bed), file(bim), file(fam) from ch_plink2
+file snps from ch_snps
 
 output:
 file('*.raw') into phewas
@@ -328,13 +409,11 @@ plink --keep-allele-order \
 ---------------------------------------------------*/
 
 process phewas {
-    publishDir "${params.outdir}/phewas", mode: 'copy'
-    container 'lifebitai/phewas:latest'
     cpus threads
 
     input:
     file genotypes from phewas
-    file pheno from codes_pheno
+    file pheno from ch_codes_pheno
 
     output:
     file("*phewas_results.csv") into results_chr
@@ -349,7 +428,7 @@ process phewas {
 
 process merge_results {
     publishDir "${params.outdir}/merged_results", mode: 'copy'
-    container 'lifebitai/phewas:latest'
+    
     input:
     file("*phewas_result.csv") from results_chr.collect()
 
@@ -410,9 +489,9 @@ if (params.post_analysis == 'coloc'){
 
     process run_coloc {
         publishDir "${params.outdir}/colocalization", mode: "copy"
-        container 'lifebitai/phewas:latest'
+
         input:
-        file gwas_file from gwas_input_ch
+        file gwas_file from ch_gwas_input
         set file(merged_results), file(merged_top_results), file("*png") from plots2
 
         output:
