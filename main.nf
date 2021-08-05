@@ -73,7 +73,6 @@ summary['Launch dir']                                  = workflow.launchDir
 summary['Working dir']                                 = workflow.workDir
 summary['Script dir']                                  = workflow.projectDir
 summary['User']                                        = workflow.userName
-summary['container']                                   = params.container
 
 summary['input_phenofile']                             = params.input_phenofile
 summary['input_id_code_count']                         = params.input_id_code_count
@@ -173,8 +172,6 @@ int threads = Runtime.getRuntime().availableProcessors()
 ---------------------------------------------------*/
 if (params.agg_vcf_file){
     process merge_agg_vcfs {
-        publishDir 'results'
-        container 'lifebitai/preprocess_gwas:latest'
 
         input:
         file(vcfs) from vcfs.collect()
@@ -211,8 +208,6 @@ if (params.agg_vcf_file){
 
 if (params.individual_vcf_file) {
     process merge_ind_vcfs {
-        publishDir 'results'
-        container 'lifebitai/preprocess_gwas:latest'
 
         input:
         file vcfs from vcfs.collect()
@@ -263,7 +258,6 @@ if (params.individual_vcf_file) {
 if (params.agg_vcf_file || params.individual_vcf_file){
     process vcf_2_plink {
         tag "plink"
-        publishDir "${params.outdir}/plink", mode: 'copy'
         
 
         input:
@@ -337,7 +331,6 @@ if (params.plink_input) {
 if (!params.snps) {
     process get_snps {
         tag "plink"
-        publishDir 'results', mode: 'copy'
 
         input:
         set file(bed), file(bim), file(fam) from plink
@@ -363,7 +356,6 @@ if (!params.snps) {
 }
 
 process recode {
-publishDir "${params.outdir}/plink", mode: 'copy'
 tag "plink"
 
 input:
@@ -388,8 +380,6 @@ plink --keep-allele-order \
 ---------------------------------------------------*/
 
 process phewas {
-    publishDir "${params.outdir}/phewas", mode: 'copy'
-    container 'lifebitai/phewas:latest'
     cpus threads
 
     input:
@@ -409,7 +399,7 @@ process phewas {
 
 process merge_results {
     publishDir "${params.outdir}/merged_results", mode: 'copy'
-    container 'lifebitai/phewas:latest'
+    
     input:
     file("*phewas_result.csv") from results_chr.collect()
 
@@ -470,7 +460,7 @@ if (params.post_analysis == 'coloc'){
 
     process run_coloc {
         publishDir "${params.outdir}/colocalization", mode: "copy"
-        container 'lifebitai/phewas:latest'
+
         input:
         file gwas_file from gwas_input_ch
         set file(merged_results), file(merged_top_results), file("*png") from plots2
