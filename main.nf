@@ -92,14 +92,26 @@ log.info "-\033[2m--------------------------------------------------\033[0m-"
   Channel setup
 ---------------------------------------------------*/
 
-//ch_pheno = params.input_phenofile ? Channel.value(file(params.input_phenofile)).into{ch_pheno; ch_pheno2; ch_pheno3} : Channel.empty()
+if (!params.agg_vcf_file && !params.individual_vcf_file && !params.plink_input && !params.fam && !params.bed && !params.bim) {
+  exit 1, "You have not supplied any genotypic data.\
+  \nPlease use either --plink_input/--bed,--bim,--fam OR --agg_vcf_file/--individual_vcf_file to provide genotypic data."
+}
+
+if (params.plink_input && params.fam && params.bed && params.bim) {
+  exit 1, "Only one set of plink files is supported as input.\
+  \nPlease use either --plink_input to specify path to a set of plink files or --bed,--bim,--fam to provide plink files individually."
+}
+
+if (params.agg_vcf_file && params.individual_vcf_file) {
+    exit 1, "Only one set of vcf files is supported as input.\
+    \nPlease use either --agg_vcf_file or --individual_vcf_file to supply multi-sample or per-sample VCFs respectively."
+}
+
 if (params.input_phenofile){
     Channel.fromPath(params.input_phenofile)
            .ifEmpty { "Phenotype file not found" }
            .into{ ch_pheno; ch_pheno2; ch_pheno3 }
 }
-//ch_pheno2 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
-//ch_pheno3 = params.input_phenofile ? Channel.value(file(params.input_phenofile)) : Channel.empty()
 
 ch_codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
 ch_gwas_input = params.gwas_input ? Channel.value(file(params.gwas_input)) : Channel.empty()
