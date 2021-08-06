@@ -21,8 +21,10 @@ option_list = list(
               help="String containing long format table for phenotypes."),
   make_option(c("--geno_file"), action="store", default='None', type='character',
               help="String containing genotypes to be tested."),
+  make_option(c("--cov_file"), action="store", type='character',
+              help="Covariate file for the corresponding genotype/phenotype data."),            
   make_option(c("--n_cpus"), action="store", default='1', type='character',
-              help="String containing input metadata for columns in Cohort Browser output."),
+              help="Number of cpus used."),
   make_option(c("--pheno_codes"), action="store", default='None', type='character',
               help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10, HPO)."),
   make_option(c("--outprefix"), action="store", default='covid', type='character',
@@ -33,9 +35,11 @@ args = parse_args(OptionParser(option_list=option_list))
 
 pheno_file          = args$pheno_file # file
 geno_file           = args$geno_file
+covariate_file      = args$cov_file
 n_cpus              = integer(args$n_cpus) # int
 pheno_codes         = args$pheno_codes
 outprefix           = args$outprefix
+
 
 ########################################
 ### Data input
@@ -105,9 +109,15 @@ results_d = data.frame()
 write.csv(results_d, file=paste0(outprefix,"_phewas_results.csv"), row.names=FALSE)
 #write.csv(results_d, file=paste0(outprefix,"_top_results.csv"), row.names=FALSE)
 }
+print(covariate_file)
 if (length(dim(genotypes)) > 1){
+  if (is.null(covariate_file)) {
+  results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),significance.threshold=c("bonferroni"))
+}
+else {
+  results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),covariates=covariate_file,significance.threshold=c("bonferroni"))
+}
 
-results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),significance.threshold=c("bonferroni"))
 
 # Add PheWAS descriptions
 results_d=addPhecodeInfo(results)
