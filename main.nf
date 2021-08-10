@@ -73,7 +73,7 @@ summary['fam']                 = params.fam
 summary['bed']                 = params.bed
 summary['bim']                 = params.bim
 
-
+summary['covariate_file']      = params.covariate_file
 summary['snps'] =  params.snps
 summary['snp_threshold'] = params.snp_threshold
 summary['pheno_file'] = params.pheno_file
@@ -471,11 +471,26 @@ process phewas {
     file("*phewas_results.csv") into results_chr
 
     script:
-    """
-    mkdir -p assets/
-    cp /assets/* assets/
-    phewas.R --pheno_file "${pheno}" --geno_file "${genotypes}" --n_cpus ${task.cpus} --pheno_codes "$params.pheno_codes"
-    """
+    if ( !params.covariate_file )
+        """
+        mkdir -p assets/
+        cp /assets/* assets/
+        phewas.R --pheno_file "${pheno}" \
+        --geno_file "${genotypes}" \
+        --n_cpus ${task.cpus} \
+        --pheno_codes "$params.pheno_codes"
+        """
+    else if ( params.covariate_file )
+        """
+        mkdir -p assets/
+        cp /assets/* assets/
+        phewas.R --pheno_file "${pheno}" \
+        --geno_file "${genotypes}" \
+        --cov_file "$params.covariate_file" \
+        --n_cpus ${task.cpus} \
+        --pheno_codes "$params.pheno_codes"
+        """
+
 }
 
 process merge_results {
