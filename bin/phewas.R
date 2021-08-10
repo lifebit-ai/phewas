@@ -78,9 +78,7 @@ if (pheno_codes == "doid") {
   id.code.count$doid = with(mappings, icd9[match(id.code.count$code, doid)])
   # rename DOID col
   names(id.code.count)[names(id.code.count) == 'code'] = 'icd9'
-  # remove NA values
-  #id.code.count = id.code.count[complete.cases(id.code.count), ]
-  # id.code.count$doid =  mappings[match(id.code.count$icd9, mappings$icd9), 1, drop=F]
+
   phenotypes=createPhewasTable(id.code.count)
 }
 if (pheno_codes == 'icd10'){
@@ -107,7 +105,6 @@ if (pheno_codes == 'hpo'){
 if (length(dim(genotypes)) < 1){
 results_d = data.frame()
 write.csv(results_d, file=paste0(outprefix,"_phewas_results.csv"), row.names=FALSE)
-#write.csv(results_d, file=paste0(outprefix,"_top_results.csv"), row.names=FALSE)
 }
 print(covariate_file)
 if (length(dim(genotypes)) > 1){
@@ -125,7 +122,6 @@ results_d=addPhecodeInfo(results)
 # Write results to csv ordered by significance
 all_res=results_d[order(results_d$p),]
 write.csv(all_res, file=paste0(outprefix,"_phewas_results.csv"), row.names=FALSE)
-#top_res=results_d[order(results_d$p)[1:1000],]
-#write.csv(top_res, file=paste0(outprefix, "_top_results.csv"), row.names=FALSE)
+
 
 }
