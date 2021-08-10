@@ -89,7 +89,7 @@ log.info summary.collect { k,v -> "${k.padRight(18)}: $v" }.join("\n")
 log.info "-\033[2m--------------------------------------------------\033[0m-"
 
 /*--------------------------------------------------
-  Channel setup
+  Conditions around inputs
 ---------------------------------------------------*/
 
 if (!params.agg_vcf_file && !params.individual_vcf_file && !params.plink_input && !params.fam && !params.bed && !params.bim) {
@@ -106,6 +106,45 @@ if (params.agg_vcf_file && params.individual_vcf_file) {
     exit 1, "Only one set of vcf files is supported as input.\
     \nPlease use either --agg_vcf_file or --individual_vcf_file to supply multi-sample or per-sample VCFs respectively."
 }
+
+if (params.agg_vcf_file && params.plink_input) {
+    exit 1, "You have supplied genotype data both in VCF and in plink format.\
+    \nPlease use either --agg_vcf_file or --plink_input to supply genotype data, either in a VCF or plink format respectively."
+}
+
+if (params.individual_vcf_file && params.individual_vcf_file) {
+    exit 1, "You have supplied genotype data both in VCF and in plink format.\
+    \nPlease use either --individual_vcf_file or --plink_input to supply genotype data, either in a VCF or plink format respectively. "
+}
+
+if (params.agg_vcf_file && params.bed && params.bim && params.fam) {
+        exit 1, "You have supplied genotype data both in VCF and in plink format.\
+    \nPlease use either --agg_vcf_file or --bed,--bim,--fam to supply genotype data, either in a VCF or plink format respectively. "
+
+}
+if (params.individual_vcf_file && params.bed && params.bim && params.fam) {
+        exit 1, "You have supplied genotype data both in VCF and in plink format.\
+    \nPlease use either --individual_vcf_file or --bed,--bim,--fam to supply genotype data, either in a VCF or plink format respectively. "
+
+}
+
+if (!params.bed && params.bim && params.fam) {
+        exit 1, "Please provide path to .bed file. All 3 files (.bed/.bim/.fam) have to supplied."
+}
+
+if (params.bed && !params.bim && params.fam) {
+        exit 1, "Please provide path to .bim file. All 3 files (.bed/.bim/.fam) have to supplied."
+}
+
+if (params.bed && params.bim && !params.fam) {
+        exit 1, "Please provide path to .fam file. All 3 files (.bed/.bim/.fam) have to supplied."
+}
+
+
+/*--------------------------------------------------
+  Channel setup
+---------------------------------------------------*/
+
 
 if (params.input_phenofile){
     Channel.fromPath(params.input_phenofile)
