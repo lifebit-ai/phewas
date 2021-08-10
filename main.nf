@@ -312,9 +312,10 @@ if (params.agg_vcf_file || params.individual_vcf_file){
         """
         sed '1d' $fam > tmpfile; mv tmpfile $fam
         # remove contigs eg GL000229.1 to prevent errors
-        sed -i '/^GL/ d' $vcf
+        gunzip $vcf -c > temp.vcf
+        sed -i '/^GL/ d' temp.vcf
         plink --keep-allele-order \
-        --vcf $vcf \
+        --vcf temp.vcf \
         --make-bed \
         --vcf-half-call m
         rm plink.fam
