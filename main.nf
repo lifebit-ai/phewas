@@ -112,7 +112,7 @@ if (params.agg_vcf_file && params.plink_input) {
     \nPlease use either --agg_vcf_file or --plink_input to supply genotype data, either in a VCF or plink format respectively."
 }
 
-if (params.individual_vcf_file && params.individual_vcf_file) {
+if (params.individual_vcf_file && params.plink_input) {
     exit 1, "You have supplied genotype data both in VCF and in plink format.\
     \nPlease use either --individual_vcf_file or --plink_input to supply genotype data, either in a VCF or plink format respectively. "
 }
