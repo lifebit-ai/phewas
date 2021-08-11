@@ -35,11 +35,11 @@ def helpMessage() {
 
     OR:
 
-    –-agg_vcf_file : Path/URL to .csv file containing chr chunk information, path to aggregated VCFs, VCFs index. Columns must include chr,vcf,index.
+    –-agg_vcf_file_list : Path/URL to .csv file containing chr chunk information, path to aggregated VCFs, VCFs index. Columns must include chr,vcf,index.
 
     OR:
 
-    –-individual_vcf_file : Path/URL to .csv file containing individual, path to individual VCFs.
+    –-individual_vcf_file_list : Path/URL to .csv file containing individual, path to individual VCFs.
 
 
     """.stripIndent()
@@ -66,8 +66,8 @@ summary['User']                                        = workflow.userName
 summary['input_phenofile']                             = params.input_phenofile
 summary['input_id_code_count']                         = params.input_id_code_count
 
-summary['individual_vcf_file']                         = params.individual_vcf_file
-summary['agg_vcf_file']                = params.agg_vcf_file
+summary['individual_vcf_file_list']                         = params.individual_vcf_file_list
+summary['agg_vcf_file_list']                = params.agg_vcf_file_list
 summary['plink_input'] = params.plink_input
 summary['fam']                 = params.fam
 summary['bed']                 = params.bed
@@ -92,9 +92,9 @@ log.info "-\033[2m--------------------------------------------------\033[0m-"
   Conditions around inputs
 ---------------------------------------------------*/
 
-if (!params.agg_vcf_file && !params.individual_vcf_file && !params.plink_input && !params.fam && !params.bed && !params.bim) {
+if (!params.agg_vcf_file_list && !params.individual_vcf_file_list && !params.plink_input && !params.fam && !params.bed && !params.bim) {
   exit 1, "You have not supplied any genotypic data.\
-  \nPlease use either --plink_input/--bed,--bim,--fam OR --agg_vcf_file/--individual_vcf_file to provide genotypic data."
+  \nPlease use either --plink_input/--bed,--bim,--fam OR --agg_vcf_file_list/--individual_vcf_file_list to provide genotypic data."
 }
 
 if (params.plink_input && params.fam && params.bed && params.bim) {
@@ -102,29 +102,29 @@ if (params.plink_input && params.fam && params.bed && params.bim) {
   \nPlease use either --plink_input to specify path to a set of plink files or --bed,--bim,--fam to provide plink files individually."
 }
 
-if (params.agg_vcf_file && params.individual_vcf_file) {
+if (params.agg_vcf_file_list && params.individual_vcf_file_list) {
     exit 1, "Only one set of vcf files is supported as input.\
-    \nPlease use either --agg_vcf_file or --individual_vcf_file to supply multi-sample or per-sample VCFs respectively."
+    \nPlease use either --agg_vcf_file_list or --individual_vcf_file_list to supply multi-sample or per-sample VCFs respectively."
 }
 
-if (params.agg_vcf_file && params.plink_input) {
+if (params.agg_vcf_file_list && params.plink_input) {
     exit 1, "You have supplied genotype data both in VCF and in plink format.\
-    \nPlease use either --agg_vcf_file or --plink_input to supply genotype data, either in a VCF or plink format respectively."
+    \nPlease use either --agg_vcf_file_list or --plink_input to supply genotype data, either in a VCF or plink format respectively."
 }
 
-if (params.individual_vcf_file && params.plink_input) {
+if (params.individual_vcf_file_list && params.plink_input) {
     exit 1, "You have supplied genotype data both in VCF and in plink format.\
-    \nPlease use either --individual_vcf_file or --plink_input to supply genotype data, either in a VCF or plink format respectively. "
+    \nPlease use either --individual_vcf_file_list or --plink_input to supply genotype data, either in a VCF or plink format respectively. "
 }
 
-if (params.agg_vcf_file && params.bed && params.bim && params.fam) {
+if (params.agg_vcf_file_list && params.bed && params.bim && params.fam) {
         exit 1, "You have supplied genotype data both in VCF and in plink format.\
-    \nPlease use either --agg_vcf_file or --bed,--bim,--fam to supply genotype data, either in a VCF or plink format respectively. "
+    \nPlease use either --agg_vcf_file_list or --bed,--bim,--fam to supply genotype data, either in a VCF or plink format respectively. "
 
 }
-if (params.individual_vcf_file && params.bed && params.bim && params.fam) {
+if (params.individual_vcf_file_list && params.bed && params.bim && params.fam) {
         exit 1, "You have supplied genotype data both in VCF and in plink format.\
-    \nPlease use either --individual_vcf_file or --bed,--bim,--fam to supply genotype data, either in a VCF or plink format respectively. "
+    \nPlease use either --individual_vcf_file_list or --bed,--bim,--fam to supply genotype data, either in a VCF or plink format respectively. "
 
 }
 
@@ -155,9 +155,9 @@ if (params.input_phenofile){
 ch_codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
 ch_gwas_input = params.gwas_input ? Channel.value(file(params.gwas_input)) : Channel.empty()
 
-if (params.agg_vcf_file){
-    Channel.fromPath(params.agg_vcf_file)
-           .ifEmpty { exit 1, "VCF file containing  not found: ${params.agg_vcf_file}" }
+if (params.agg_vcf_file_list){
+    Channel.fromPath(params.agg_vcf_file_list)
+           .ifEmpty { exit 1, "VCF file containing  not found: ${params.agg_vcf_file_list}" }
            .into {ch_vcf_file; ch_vcfs_to_split; ch_index_to_split}
     ch_vcfs_to_split
         .splitCsv(header: true)
@@ -176,9 +176,9 @@ if (params.plink_input){
     .set { plinkCh }
 }
 
-if (params.individual_vcf_file) {
-    Channel.fromPath(params.individual_vcf_file)
-           .ifEmpty { exit 1, "VCF file containing  not found: ${params.individual_vcf_file}" }
+if (params.individual_vcf_file_list) {
+    Channel.fromPath(params.individual_vcf_file_list)
+           .ifEmpty { exit 1, "VCF file containing  not found: ${params.individual_vcf_file_list}" }
            .into { ch_vcf_file; ch_vcfs_to_split }
     ch_vcfs_to_split
         .splitCsv(header: true)
@@ -215,7 +215,7 @@ int threads = Runtime.getRuntime().availableProcessors()
 /*--------------------------------------------------
   Using different formats: vcf & plink
 ---------------------------------------------------*/
-if (params.agg_vcf_file){
+if (params.agg_vcf_file_list){
     process merge_agg_vcfs {
 
         input:
@@ -246,7 +246,7 @@ if (params.agg_vcf_file){
     }
 }
 
-if (params.individual_vcf_file) {
+if (params.individual_vcf_file_list) {
     process merge_ind_vcfs {
 
         label 'file_preprocessing'
@@ -294,7 +294,7 @@ if (params.individual_vcf_file) {
 
 }
 
-if (params.agg_vcf_file || params.individual_vcf_file){
+if (params.agg_vcf_file_list || params.individual_vcf_file_list){
 
     process combine_vcfs {
         publishDir "${params.outdir}/vcf", mode: 'copy'
