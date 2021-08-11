@@ -106,7 +106,7 @@ if (length(dim(genotypes)) < 1){
 results_d = data.frame()
 write.csv(results_d, file=paste0(outprefix,"_phewas_results.csv"), row.names=FALSE)
 }
-print(covariate_file)
+
 if (length(dim(genotypes)) > 1){
   if (is.null(covariate_file)) {
   results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),significance.threshold=c("bonferroni"))
