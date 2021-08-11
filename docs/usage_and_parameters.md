@@ -32,7 +32,7 @@ OR:
 
 - **--bim** : path/url to bim file.
 - **--bed** : path/url to bed file.
-- **--data** : path/url to fam file.
+- **--fam** : path/url to fam file.
 
 #### Phenotypic data
 

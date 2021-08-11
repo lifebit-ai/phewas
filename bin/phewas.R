@@ -21,8 +21,10 @@ option_list = list(
               help="String containing long format table for phenotypes."),
   make_option(c("--geno_file"), action="store", default='None', type='character',
               help="String containing genotypes to be tested."),
+  make_option(c("--cov_file"), action="store", type='character',
+              help="Covariate file for the corresponding genotype/phenotype data."),            
   make_option(c("--n_cpus"), action="store", default='1', type='character',
-              help="String containing input metadata for columns in Cohort Browser output."),
+              help="Number of cpus used."),
   make_option(c("--pheno_codes"), action="store", default='None', type='character',
               help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10, HPO)."),
   make_option(c("--outprefix"), action="store", default='covid', type='character',
@@ -33,9 +35,11 @@ args = parse_args(OptionParser(option_list=option_list))
 
 pheno_file          = args$pheno_file # file
 geno_file           = args$geno_file
+covariate_file      = args$cov_file
 n_cpus              = integer(args$n_cpus) # int
 pheno_codes         = args$pheno_codes
 outprefix           = args$outprefix
+
 
 ########################################
 ### Data input
@@ -74,9 +78,7 @@ if (pheno_codes == "doid") {
   id.code.count$doid = with(mappings, icd9[match(id.code.count$code, doid)])
   # rename DOID col
   names(id.code.count)[names(id.code.count) == 'code'] = 'icd9'
-  # remove NA values
-  #id.code.count = id.code.count[complete.cases(id.code.count), ]
-  # id.code.count$doid =  mappings[match(id.code.count$icd9, mappings$icd9), 1, drop=F]
+
   phenotypes=createPhewasTable(id.code.count)
 }
 if (pheno_codes == 'icd10'){
@@ -103,11 +105,16 @@ if (pheno_codes == 'hpo'){
 if (length(dim(genotypes)) < 1){
 results_d = data.frame()
 write.csv(results_d, file=paste0(outprefix,"_phewas_results.csv"), row.names=FALSE)
-#write.csv(results_d, file=paste0(outprefix,"_top_results.csv"), row.names=FALSE)
 }
-if (length(dim(genotypes)) > 1){
 
-results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),significance.threshold=c("bonferroni"))
+if (length(dim(genotypes)) > 1){
+  if (is.null(covariate_file)) {
+  results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),significance.threshold=c("bonferroni"))
+}
+else {
+  results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),covariates=covariate_file,significance.threshold=c("bonferroni"))
+}
+
 
 # Add PheWAS descriptions
 results_d=addPhecodeInfo(results)
@@ -115,7 +122,6 @@ results_d=addPhecodeInfo(results)
 # Write results to csv ordered by significance
 all_res=results_d[order(results_d$p),]
 write.csv(all_res, file=paste0(outprefix,"_phewas_results.csv"), row.names=FALSE)
-#top_res=results_d[order(results_d$p)[1:1000],]
-#write.csv(top_res, file=paste0(outprefix, "_top_results.csv"), row.names=FALSE)
+
 
 }
