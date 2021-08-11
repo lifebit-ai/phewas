@@ -556,6 +556,7 @@ if (params.post_analysis == 'coloc'){
 
     process run_coloc {
         publishDir "${params.outdir}/colocalization", mode: "copy"
+        label "coloc"
 
         input:
         file gwas_file from ch_gwas_input
