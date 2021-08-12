@@ -142,8 +142,9 @@ if (params.bed && params.bim && !params.fam) {
   Channel setup
 ---------------------------------------------------*/
 ch_samples_to_combine_vcfs = !params.input_phenofile && params.input_samplefile ?  Channel.fromPath(params.input_samplefile) : Channel.fromPath(params.input_phenofile)
-ch_pheno_for_assoc_test = params.input_phenofile && !params.input_samplefile ? Channel.fromPath(params.input_phenofile) : "null"
 ch_samples_to_combine_vcfs = !params.input_samplefile && params.input_phenofile ? Channel.fromPath(params.input_phenofile): Channel.fromPath(params.input_samplefile)
+ch_pheno_for_assoc_test = params.input_phenofile && !params.input_samplefile ? Channel.fromPath(params.input_phenofile) : "null"
+
 
 
 ch_codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
