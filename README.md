@@ -2,9 +2,12 @@
 
 Example commands to run the pipeline:
 ```bash
-nextflow run main.nf --vcf_file testdata/vcf_samples.csv --pheno SMOKER --pheno_file testdata/all.doid.count.csv
+nextflow run main.nf --agg_vcf_file_list testdata/vcf_samples.csv \
+                     --input_phenofile testdata/cb_binary_pheno.phe \
+                     --input_id_code_count testdata/phewas_id_code_count.csv \
+                     --pheno_codes "icd10"
 ```
-Or with CB outputs:
+Alternatively, it is possible to specify plink input files:
 ```bash
 nextflow run main.nf --input_phenofile "s3://lifebit-featured-datasets/pipelines/phewas/cb_binary_pheno.phe" \
                      --input_id_code_count "s3://lifebit-featured-datasets/pipelines/phewas/phewas_id_code_count.csv" \

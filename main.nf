@@ -16,7 +16,7 @@ def helpMessage() {
     phewas - A pipeline for running pheWAS adapted for vcf and plink inputs.
     Usage:
     The typical command for running the pipeline is as follows:
-    nextflow run main.nf --plink_input /path/plink.{bed,bim,fam} –-input_phenofile pheno.phe  \
+    nextflow run main.nf --plink_input /path/plink.{bed,bim,fam} –-input_sample_info_with_pheno pheno.phe  \
     –-input_id_code_count icd10_id_code_count.csv –-pheno_codes "icd10" [Options]
     
     Essential parameters:
@@ -62,27 +62,24 @@ summary['Launch dir']                                  = workflow.launchDir
 summary['Working dir']                                 = workflow.workDir
 summary['Script dir']                                  = workflow.projectDir
 summary['User']                                        = workflow.userName
-
+summary['input_samplefile']                            = params.input_samplefile
 summary['input_phenofile']                             = params.input_phenofile
 summary['input_id_code_count']                         = params.input_id_code_count
 
-summary['individual_vcf_file_list']                         = params.individual_vcf_file_list
-summary['agg_vcf_file_list']                = params.agg_vcf_file_list
-summary['plink_input'] = params.plink_input
-summary['fam']                 = params.fam
-summary['bed']                 = params.bed
-summary['bim']                 = params.bim
+summary['individual_vcf_file_list']                    = params.individual_vcf_file_list
+summary['agg_vcf_file_list']                           = params.agg_vcf_file_list
+summary['plink_input']                                 = params.plink_input
+summary['fam']                                         = params.fam
+summary['bed']                                         = params.bed
+summary['bim']                                         = params.bim
 
-summary['covariate_file']      = params.covariate_file
-summary['snps'] =  params.snps
-summary['snp_threshold'] = params.snp_threshold
-summary['pheno_file'] = params.pheno_file
-summary['pheno_codes'] = params.pheno_codes
-summary['post_analysis'] = params.post_analysis
-summary['gwas_input'] = params.gwas_input
-summary['gwas_trait_type'] = params.gwas_trait_type
-
-
+summary['covariate_file']                              = params.covariate_file
+summary['snps']                                        = params.snps
+summary['snp_threshold']                               = params.snp_threshold
+summary['pheno_codes']                                 = params.pheno_codes
+summary['post_analysis']                               = params.post_analysis
+summary['gwas_input']                                  = params.gwas_input
+summary['gwas_trait_type']                             = params.gwas_trait_type
 
 
 log.info summary.collect { k,v -> "${k.padRight(18)}: $v" }.join("\n")
@@ -144,13 +141,10 @@ if (params.bed && params.bim && !params.fam) {
 /*--------------------------------------------------
   Channel setup
 ---------------------------------------------------*/
+ch_samples_to_combine_vcfs = !params.input_phenofile && params.input_samplefile ?  Channel.fromPath(params.input_phenofile) : Channel.fromPath(params.input_samplefile)
+ch_pheno_for_assoc_test = params.input_phenofile && !params.input_samplefile ? Channel.fromPath(params.input_phenofile) : "null"
+ch_samples_to_combine_vcfs = params.input_samplefile && !params.input_phenofile ? Channel.fromPath(params.input_samplefile): Channel.fromPath(params.input_phenofile)
 
-
-if (params.input_phenofile){
-    Channel.fromPath(params.input_phenofile)
-           .ifEmpty { "Phenotype file not found" }
-           .into{ ch_pheno; ch_pheno2; ch_pheno3 }
-}
 
 ch_codes_pheno = params.input_id_code_count ? Channel.value(file(params.input_id_code_count)) : Channel.empty()
 ch_gwas_input = params.gwas_input ? Channel.value(file(params.gwas_input)) : Channel.empty()
@@ -302,7 +296,7 @@ if (params.agg_vcf_file_list || params.individual_vcf_file_list){
         input:
         file(vcfs) from ch_vcfs.collect()
         file vcf_list from  ch_updated_vcf_list
-        file pheno_file from ch_pheno3
+        file pheno_file from ch_samples_to_combine_vcfs
 
         output:
         file 'filtered_by_sample.vcf.gz' into ch_vcf_plink
@@ -342,23 +336,20 @@ if (params.agg_vcf_file_list || params.individual_vcf_file_list){
 
         input:
         file vcf from ch_vcf_plink
-        file fam from ch_pheno
 
         output:
         set file('*.bed'), file('*.bim'), file('*.fam') into ch_plink, ch_plink2
 
         script:
         """
-        sed '1d' $fam > tmpfile; mv tmpfile $fam
         # remove contigs eg GL000229.1 to prevent errors
         gunzip $vcf -c > temp.vcf
         sed -i '/^GL/ d' temp.vcf
         plink --keep-allele-order \
         --vcf temp.vcf \
         --make-bed \
+        --double-id \
         --vcf-half-call m
-        rm plink.fam
-        mv $fam plink.fam
         """
     }
 }
@@ -415,7 +406,7 @@ if (!params.snps) {
 
         input:
         set file(bed), file(bim), file(fam) from ch_plink
-        file pheno_file from ch_pheno2
+        file pheno_file from ch_pheno_for_assoc_test
 
         output:
         file("snps.txt") into ch_snps
@@ -426,11 +417,12 @@ if (!params.snps) {
         --bed $bed \
         --bim $bim \
         --fam $fam \
+        --allow-no-sex \
         --pheno ${pheno_file} \
         --pheno-name PHE \
         --threads ${task.cpus} \
         --assoc \
-        --out out
+        --out out 
         awk -F' ' '{if(\$9<${params.snp_threshold}) print \$2}' out.assoc > snps.txt
         """
     }
