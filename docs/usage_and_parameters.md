@@ -74,6 +74,8 @@ The required columns are `id`, `code` and `count` where `id` contains sample IDs
 
 ## **Optional**
 
+- **--concat_vcfs** Combines input VCF files by concatenation (bcftools concat) - recommended for per-chromosome inputs. Default behaviour is `bcftools merge`. `--concat_vcfs` should be specified as a flag, with no input.
+
 - **--snps** File containing relevant SNPs to be tested in a `phewas` step. The file should contain no header and one SNP per row. The variant IDs should correspond to those found in VCF or .bim files.
 ```
 rs1002365

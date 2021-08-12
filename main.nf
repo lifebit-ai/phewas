@@ -296,8 +296,8 @@ if (params.agg_vcf_file_list || params.individual_vcf_file_list){
 
         input:
         file(vcfs) from ch_vcfs.collect()
-        file vcf_list from  ch_updated_vcf_list
-        file pheno_file from ch_samples_to_combine_vcfs
+        file vcf_list from ch_updated_vcf_list
+        file sample_file from ch_samples_to_combine_vcfs
 
         output:
         file 'filtered_by_sample.vcf.gz' into ch_vcf_plink
@@ -312,7 +312,7 @@ if (params.agg_vcf_file_list || params.individual_vcf_file_list){
             done
             for i in *.vcf.gz; do bcftools index \${i}; done
             vcfs_to_combine=\$(find . -name '*.vcf.gz'| paste -sd " ")
-            sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
+            sed '1d' $sample_file | awk -F' ' '{print \$1}' > sample_file.txt
             bcftools concat \${vcfs_to_combine} -Oz -o merged.vcf.gz
             bcftools view -S sample_file.txt merged.vcf.gz -Oz -o filtered_by_sample.vcf.gz
             """
@@ -326,7 +326,7 @@ if (params.agg_vcf_file_list || params.individual_vcf_file_list){
             for i in *.vcf.gz; do bcftools index \${i}; done
             vcfs_to_combine=\$(find . -name '*.vcf.gz'| paste -sd " ")
             bcftools merge --force-samples \${vcfs_to_combine} -Oz -o merged.vcf.gz
-            sed '1d' $pheno_file | awk -F' ' '{print \$1}' > sample_file.txt
+            sed '1d' $sample_file | awk -F' ' '{print \$1}' > sample_file.txt
             bcftools view -S sample_file.txt merged.vcf.gz -Oz -o filtered_by_sample.vcf.gz
             """
     }
