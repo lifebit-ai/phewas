@@ -14,6 +14,20 @@ nextflow run main.nf --input_phenofile "s3://lifebit-featured-datasets/pipelines
                      --plink_input "s3://lifebit-featured-datasets/pipelines/biobank-gwas/testdata/sampleA.{bed,bim,fam}" \
                      --pheno_codes "icd10"
 ```
+A covariate file can be used for pheWAS analysis (optional, but strongly recommended). Please note that the format for the covariate file should be a comma-delimited file with sample IDs in first column (`id` as first column name). The regression model used in pheWAS will use all supplied covariates by default :
+```
+id,sex,age...
+1,1,25
+```
+
+```bash
+nextflow run main.nf --input_phenofile "s3://lifebit-featured-datasets/pipelines/phewas/cb_binary_pheno.phe" \
+                     --input_id_code_count "s3://lifebit-featured-datasets/pipelines/phewas/phewas_id_code_count.csv" \
+                     --plink_input "s3://lifebit-featured-datasets/pipelines/biobank-gwas/testdata/sampleA.{bed,bim,fam}" \
+                     --covariate_file "s3://eu-west-2-example-data/pipelines/phewas/testdata/cov.csv"
+                     --pheno_codes "icd10"
+```
+
 With colocalization analysis with binary GWAS:
 ```bash
 nextflow run main.nf --input_phenofile "s3://lifebit-featured-datasets/pipelines/phewas/cb_binary_pheno.phe" \
