@@ -77,6 +77,8 @@ summary['covariate_file']                              = params.covariate_file
 summary['snps']                                        = params.snps
 summary['snp_threshold']                               = params.snp_threshold
 summary['pheno_codes']                                 = params.pheno_codes
+summary['min_code_count']                              = params.min_code_count
+summary['add_phewas_exclusions']                              = params.add_phewas_exclusions
 summary['post_analysis']                               = params.post_analysis
 summary['gwas_input']                                  = params.gwas_input
 summary['gwas_trait_type']                             = params.gwas_trait_type
@@ -138,6 +140,11 @@ if (params.bed && params.bim && !params.fam) {
 }
 
 
+if (params.add_phewas_exclusions) {
+    ch_add_exclusions = Channel.value('TRUE')
+} else if (!params.add_phewas_exclusions){
+    ch_add_exclusions = Channel.value('FALSE')
+}
 /*--------------------------------------------------
   Channel setup
 ---------------------------------------------------*/
@@ -459,6 +466,7 @@ process phewas {
     input:
     file genotypes from phewas
     file pheno from ch_codes_pheno
+    val add_exclusions from ch_add_exclusions
 
     output:
     file("*phewas_results.csv") into results_chr
@@ -471,6 +479,8 @@ process phewas {
         phewas.R --pheno_file "${pheno}" \
         --geno_file "${genotypes}" \
         --n_cpus ${task.cpus} \
+        --min_code_count ${params.min_code_count} \
+        --add_exclusions ${add_exclusions} \
         --pheno_codes "$params.pheno_codes"
         """
     else if ( params.covariate_file )
@@ -481,6 +491,8 @@ process phewas {
         --geno_file "${genotypes}" \
         --cov_file "$params.covariate_file" \
         --n_cpus ${task.cpus} \
+        --min_code_count ${params.min_code_count} \
+        --add_exclusions ${add_exclusions} \
         --pheno_codes "$params.pheno_codes"
         """
 

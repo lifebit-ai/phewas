@@ -27,9 +27,9 @@ option_list = list(
               help="Number of cpus used."),
   make_option(c("--pheno_codes"), action="store", default='None', type='character',
               help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10, HPO)."),
-    make_option(c("--min_code_count"), action="store", default=2, type='character',
+    make_option(c("--min_code_count"), action="store", default='2', type='character',
               help="Minimum code count to define case/control."),
-      make_option(c("--add_exclusions"), action="store", default=True, type='logical',
+      make_option(c("--add_exclusions"), action="store", default=TRUE, type='logical',
               help="Applying pheWAS exclusions to phecodes."),
   make_option(c("--outprefix"), action="store", default='covid', type='character',
               help="String containing prefix to be added to files.")
@@ -40,12 +40,11 @@ args = parse_args(OptionParser(option_list=option_list))
 pheno_file          = args$pheno_file # file
 geno_file           = args$geno_file
 covariate_file      = args$cov_file
-n_cpus              = integer(args$n_cpus) # int
-min_code_count      = integer(args$min_code_count)
-add_exclusions      = logical(args$add_exclusions)
+n_cpus              = as.numeric(args$n_cpus) # int
+min_code_count      = as.numeric(args$min_code_count)
+add_exclusions      = args$add_exclusions
 pheno_codes         = args$pheno_codes
 outprefix           = args$outprefix
-
 
 ########################################
 ### Data input
