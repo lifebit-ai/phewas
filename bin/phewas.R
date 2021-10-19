@@ -27,6 +27,10 @@ option_list = list(
               help="Number of cpus used."),
   make_option(c("--pheno_codes"), action="store", default='None', type='character',
               help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10, HPO)."),
+    make_option(c("--min_code_count"), action="store", default=2, type='character',
+              help="Minimum code count to define case/control."),
+      make_option(c("--add_exclusions"), action="store", default=True, type='logical',
+              help="Applying pheWAS exclusions to phecodes."),
   make_option(c("--outprefix"), action="store", default='covid', type='character',
               help="String containing prefix to be added to files.")
 )
@@ -37,6 +41,8 @@ pheno_file          = args$pheno_file # file
 geno_file           = args$geno_file
 covariate_file      = args$cov_file
 n_cpus              = integer(args$n_cpus) # int
+min_code_count      = integer(args$min_code_count)
+add_exclusions      = logical(args$add_exclusions)
 pheno_codes         = args$pheno_codes
 outprefix           = args$outprefix
 
@@ -79,7 +85,7 @@ if (pheno_codes == "doid") {
   # rename DOID col
   names(id.code.count)[names(id.code.count) == 'code'] = 'icd9'
 
-  phenotypes=createPhewasTable(id.code.count)
+  phenotypes=createPhewasTable(id.code.count, min.code.count = min_code_count, add.exclusions = add_exclusions)
 }
 if (pheno_codes == 'icd10'){
   icd10_data = read.csv("assets/Phecode_map_v1_2_icd10cm_beta.csv", colClasses=rep("character",8)) %>% select(icd10cm, phecode)
