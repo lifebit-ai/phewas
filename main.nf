@@ -314,7 +314,7 @@ if (params.agg_vcf_file_list || params.individual_vcf_file_list){
             vcfs_to_combine=\$(find . -name '*.vcf.gz'| paste -sd " ")
             sed '1d' $sample_file | awk -F' ' '{print \$1}' > sample_file.txt
             bcftools concat \${vcfs_to_combine} -Oz -o merged.vcf.gz
-            bcftools view -S sample_file.txt merged.vcf.gz -Oz -o filtered_by_sample.vcf.gz
+            bcftools view -S sample_file.txt merged.vcf.gz --force-samples -Oz -o filtered_by_sample.vcf.gz
             """
         else if ( !params.concat_vcfs )
             """
@@ -327,7 +327,7 @@ if (params.agg_vcf_file_list || params.individual_vcf_file_list){
             vcfs_to_combine=\$(find . -name '*.vcf.gz'| paste -sd " ")
             bcftools merge --force-samples \${vcfs_to_combine} -Oz -o merged.vcf.gz
             sed '1d' $sample_file | awk -F' ' '{print \$1}' > sample_file.txt
-            bcftools view -S sample_file.txt merged.vcf.gz -Oz -o filtered_by_sample.vcf.gz
+            bcftools view -S sample_file.txt merged.vcf.gz --force-samples -Oz -o filtered_by_sample.vcf.gz
             """
     }
 
