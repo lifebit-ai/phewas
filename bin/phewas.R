@@ -56,6 +56,9 @@ genotypes = genotypes[,c(-2:-6)]
 names(genotypes)[1]="id"
 
 
+ if (!is.null(covariate_file)) {
+   covariates = read.table(covariate_file,header=TRUE,sep=',')
+ }
 
 
 
@@ -117,7 +120,7 @@ if (length(dim(genotypes)) > 1){
   results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),significance.threshold=c("bonferroni"))
 }
 else {
-  results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),covariates=covariate_file,significance.threshold=c("bonferroni"))
+  results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),covariates=covariates,significance.threshold=c("bonferroni"))
 }
 
 

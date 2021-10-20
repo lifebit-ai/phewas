@@ -499,17 +499,17 @@ process phewas {
 }
 
 process merge_results {
-    publishDir "${params.outdir}/merged_results", mode: 'copy'
+    publishDir "${params.outdir}/summary_statistics", mode: 'copy'
     
     input:
     file("*phewas_result.csv") from results_chr.collect()
 
     output:
-    set file("merged_results.csv"), file("merged_top_results.csv"), file("*png") into plots, plots2
+    set file("summary_statistics.csv"), file("summary_top_hits.csv"), file("*png") into plots, plots2
 
     script:
     """
-    plot_merged_results.R
+    plot_summary_statistics.R
 
     """
 }

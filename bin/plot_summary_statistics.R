@@ -43,10 +43,10 @@ results_d$phenotype = sapply(results_d$phenotype, function(x) fix_phenotype(x))
 
 
 results_d %>%
-    write.csv("merged_results.csv", row.names=FALSE)
+    write.csv("summary_statistics.csv", row.names=FALSE)
 results_d %>% 
     head(1000) %>%
-    write.csv("merged_top_results.csv", row.names=FALSE)
+    write.csv("summary_top_hits.csv", row.names=FALSE)
 
 ##########################################################
 # Plot and saves                                
