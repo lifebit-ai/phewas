@@ -210,6 +210,12 @@ if (params.snps) {
     .set { ch_snps }
 }
 
+if (params.covariate_file) {
+    Channel.fromPath(params.covariate_file)
+    .ifEmpty { exit 1, "File with covariates not found: ${params.covariate_file}" }
+    .set { ch_covariate_file }
+}
+
 
 // Get as many processors as machine has
 int threads = Runtime.getRuntime().availableProcessors()
@@ -459,20 +465,45 @@ plink --keep-allele-order \
 /*--------------------------------------------------
   Run phewas
 ---------------------------------------------------*/
+if ( params.covariate_file ) {
+    process phewas {
+        cpus threads
 
-process phewas {
-    cpus threads
+        input:
+        file genotypes from phewas
+        file pheno from ch_codes_pheno
+        file cov_file from ch_covariate_file
+        val add_exclusions from ch_add_exclusions
 
-    input:
-    file genotypes from phewas
-    file pheno from ch_codes_pheno
-    val add_exclusions from ch_add_exclusions
+        output:
+        file("*phewas_results.csv") into results_chr
 
-    output:
-    file("*phewas_results.csv") into results_chr
+        script:
+        """
+        mkdir -p assets/
+        cp /assets/* assets/
+        phewas.R --pheno_file "${pheno}" \
+        --geno_file "${genotypes}" \
+        --cov_file "${cov_file}" \
+        --n_cpus ${task.cpus} \
+        --min_code_count ${params.min_code_count} \
+        --add_exclusions ${add_exclusions} \
+        --pheno_codes "$params.pheno_codes"
+        """
+    }
+} else if ( !params.covariate_file ) {
 
-    script:
-    if ( !params.covariate_file )
+    process phewas_with_covariates {
+        cpus threads
+
+        input:
+        file genotypes from phewas
+        file pheno from ch_codes_pheno
+
+        output:
+        file("*phewas_results.csv") into results_chr
+
+        script:
         """
         mkdir -p assets/
         cp /assets/* assets/
@@ -483,19 +514,7 @@ process phewas {
         --add_exclusions ${add_exclusions} \
         --pheno_codes "$params.pheno_codes"
         """
-    else if ( params.covariate_file )
-        """
-        mkdir -p assets/
-        cp /assets/* assets/
-        phewas.R --pheno_file "${pheno}" \
-        --geno_file "${genotypes}" \
-        --cov_file "$params.covariate_file" \
-        --n_cpus ${task.cpus} \
-        --min_code_count ${params.min_code_count} \
-        --add_exclusions ${add_exclusions} \
-        --pheno_codes "$params.pheno_codes"
-        """
-
+}
 }
 
 process merge_results {
