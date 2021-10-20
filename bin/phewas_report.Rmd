@@ -62,6 +62,7 @@ htmltools::tags$figcaption( style = 'caption-side: bottom; text-align: center; f
 ## pheWAS output
 
 ```{r}
+options(scipen=999)
 table   <- as.data.frame(data.table::fread(params$phewas_results))
 colnames(table) <- snakecase::to_snake_case(colnames(table))
 DTable(table)
