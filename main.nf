@@ -141,9 +141,9 @@ if (params.bed && params.bim && !params.fam) {
 
 
 if (params.add_phewas_exclusions) {
-    ch_add_phewas_exclusions = Channel.value('TRUE')
+    ch_add_exclusions = Channel.value('TRUE')
 } else if (!params.add_phewas_exclusions){
-    ch_add_phewas_exclusions = Channel.value('FALSE')
+    ch_add_exclusions = Channel.value('FALSE')
 }
 /*--------------------------------------------------
   Channel setup
