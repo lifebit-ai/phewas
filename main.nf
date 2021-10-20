@@ -499,6 +499,7 @@ if ( params.covariate_file ) {
         input:
         file genotypes from phewas
         file pheno from ch_codes_pheno
+        val add_exclusions from ch_add_exclusions
 
         output:
         file("*phewas_results.csv") into results_chr
