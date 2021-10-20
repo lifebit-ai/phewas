@@ -59,10 +59,6 @@ names(genotypes)[1]="id"
  if (!is.null(covariate_file)) {
    covariates = read.table(covariate_file,header=TRUE,sep=',')
  }
-<<<<<<< HEAD
-
-=======
->>>>>>> d0016ff... {EG} run with covariate file (#52)
 
 
 # load the pheno data
