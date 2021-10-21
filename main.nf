@@ -77,6 +77,8 @@ summary['covariate_file']                              = params.covariate_file
 summary['snps']                                        = params.snps
 summary['snp_threshold']                               = params.snp_threshold
 summary['pheno_codes']                                 = params.pheno_codes
+summary['min_code_count']                              = params.min_code_count
+summary['add_phewas_exclusions']                              = params.add_phewas_exclusions
 summary['post_analysis']                               = params.post_analysis
 summary['gwas_input']                                  = params.gwas_input
 summary['gwas_trait_type']                             = params.gwas_trait_type
@@ -138,6 +140,11 @@ if (params.bed && params.bim && !params.fam) {
 }
 
 
+if (params.add_phewas_exclusions) {
+    ch_add_exclusions = Channel.value('TRUE')
+} else if (!params.add_phewas_exclusions){
+    ch_add_exclusions = Channel.value('FALSE')
+}
 /*--------------------------------------------------
   Channel setup
 ---------------------------------------------------*/
@@ -320,7 +327,7 @@ if (params.agg_vcf_file_list || params.individual_vcf_file_list){
             vcfs_to_combine=\$(find . -name '*.vcf.gz'| paste -sd " ")
             sed '1d' $sample_file | awk -F' ' '{print \$1}' > sample_file.txt
             bcftools concat \${vcfs_to_combine} -Oz -o merged.vcf.gz
-            bcftools view -S sample_file.txt merged.vcf.gz -Oz -o filtered_by_sample.vcf.gz
+            bcftools view -S sample_file.txt merged.vcf.gz --force-samples -Oz -o filtered_by_sample.vcf.gz
             """
         else if ( !params.concat_vcfs )
             """
@@ -333,7 +340,7 @@ if (params.agg_vcf_file_list || params.individual_vcf_file_list){
             vcfs_to_combine=\$(find . -name '*.vcf.gz'| paste -sd " ")
             bcftools merge --force-samples \${vcfs_to_combine} -Oz -o merged.vcf.gz
             sed '1d' $sample_file | awk -F' ' '{print \$1}' > sample_file.txt
-            bcftools view -S sample_file.txt merged.vcf.gz -Oz -o filtered_by_sample.vcf.gz
+            bcftools view -S sample_file.txt merged.vcf.gz --force-samples -Oz -o filtered_by_sample.vcf.gz
             """
     }
 
@@ -466,6 +473,7 @@ if ( params.covariate_file ) {
         file genotypes from phewas
         file pheno from ch_codes_pheno
         file cov_file from ch_covariate_file
+        val add_exclusions from ch_add_exclusions
 
         output:
         file("*phewas_results.csv") into results_chr
@@ -478,6 +486,8 @@ if ( params.covariate_file ) {
         --geno_file "${genotypes}" \
         --cov_file "${cov_file}" \
         --n_cpus ${task.cpus} \
+        --min_code_count ${params.min_code_count} \
+        --add_exclusions ${add_exclusions} \
         --pheno_codes "$params.pheno_codes"
         """
     }
@@ -489,6 +499,7 @@ if ( params.covariate_file ) {
         input:
         file genotypes from phewas
         file pheno from ch_codes_pheno
+        val add_exclusions from ch_add_exclusions
 
         output:
         file("*phewas_results.csv") into results_chr
@@ -500,23 +511,25 @@ if ( params.covariate_file ) {
         phewas.R --pheno_file "${pheno}" \
         --geno_file "${genotypes}" \
         --n_cpus ${task.cpus} \
+        --min_code_count ${params.min_code_count} \
+        --add_exclusions ${add_exclusions} \
         --pheno_codes "$params.pheno_codes"
         """
 }
 }
 
 process merge_results {
-    publishDir "${params.outdir}/merged_results", mode: 'copy'
+    publishDir "${params.outdir}/summary_statistics", mode: 'copy'
     
     input:
     file("*phewas_result.csv") from results_chr.collect()
 
     output:
-    set file("merged_results.csv"), file("merged_top_results.csv"), file("*png") into plots, plots2
+    set file("summary_statistics.csv"), file("summary_top_hits.csv"), file("*png") into plots, plots2
 
     script:
     """
-    plot_merged_results.R
+    plot_summary_statistics.R
 
     """
 }
