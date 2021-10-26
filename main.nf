@@ -145,6 +145,12 @@ if (params.add_phewas_exclusions) {
 } else if (!params.add_phewas_exclusions){
     ch_add_exclusions = Channel.value('FALSE')
 }
+
+if (params.firth_regression) {
+    ch_firth_regression = Channel.value('TRUE')
+} else if (!params.firth_regression){
+    ch_firth_regression = Channel.value('FALSE')
+}
 /*--------------------------------------------------
   Channel setup
 ---------------------------------------------------*/
@@ -474,6 +480,7 @@ if ( params.covariate_file ) {
         file pheno from ch_codes_pheno
         file cov_file from ch_covariate_file
         val add_exclusions from ch_add_exclusions
+        val firth_regression from ch_firth_regression
 
         output:
         file("*phewas_results.csv") into results_chr
@@ -488,6 +495,7 @@ if ( params.covariate_file ) {
         --n_cpus ${task.cpus} \
         --min_code_count ${params.min_code_count} \
         --add_exclusions ${add_exclusions} \
+        --firth_regression ${firth_regression} \
         --pheno_codes "$params.pheno_codes"
         """
     }
@@ -500,6 +508,7 @@ if ( params.covariate_file ) {
         file genotypes from phewas
         file pheno from ch_codes_pheno
         val add_exclusions from ch_add_exclusions
+        val firth_regression from ch_firth_regression
 
         output:
         file("*phewas_results.csv") into results_chr
@@ -513,6 +522,7 @@ if ( params.covariate_file ) {
         --n_cpus ${task.cpus} \
         --min_code_count ${params.min_code_count} \
         --add_exclusions ${add_exclusions} \
+        --firth_regression ${firth_regression} \
         --pheno_codes "$params.pheno_codes"
         """
 }

@@ -27,10 +27,12 @@ option_list = list(
               help="Number of cpus used."),
   make_option(c("--pheno_codes"), action="store", default='None', type='character',
               help="String representing phenotype nomenclature (ie. DOID, ICD9, ICD10, HPO)."),
-    make_option(c("--min_code_count"), action="store", default='2', type='character',
+  make_option(c("--min_code_count"), action="store", default='2', type='character',
               help="Minimum code count to define case/control."),
-      make_option(c("--add_exclusions"), action="store", default=TRUE, type='logical',
+  make_option(c("--add_exclusions"), action="store", default=TRUE, type='logical',
               help="Applying pheWAS exclusions to phecodes."),
+  make_option(c("--firth_regression"), action="store", default=FALSE, type='logical',
+              help="Run Firth logistic regression (recommended for phenotypes with unbalanced case/control ratios)."),
   make_option(c("--outprefix"), action="store", default='covid', type='character',
               help="String containing prefix to be added to files.")
 )
@@ -43,6 +45,7 @@ covariate_file      = args$cov_file
 n_cpus              = as.numeric(args$n_cpus) # int
 min_code_count      = as.numeric(args$min_code_count)
 add_exclusions      = args$add_exclusions
+firth_regression    = args$firth_regression
 pheno_codes         = args$pheno_codes
 outprefix           = args$outprefix
 
@@ -106,6 +109,13 @@ if (pheno_codes == 'hpo'){
   phenotypes=createPhewasTable(id.code.count)
 }
 
+if (firth_regression){
+  geno_pheno <- inner_join(genotypes, phenotypes)
+ if (!is.null(covariate_file)) {
+   geno_pheno_cov <- inner_join(geno_pheno, covariates)
+ }
+}
+
 ########################################
 ### Run the PheWAS
 ########################################
@@ -116,11 +126,21 @@ write.csv(results_d, file=paste0(outprefix,"_phewas_results.csv"), row.names=FAL
 
 if (length(dim(genotypes)) > 1){
   if (is.null(covariate_file)) {
-  results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),significance.threshold=c("bonferroni"))
+  
+  if (firth_regression) {
+    results = phewas_ext(data=geno_pheno, phenotypes = names(phenotypes)[-1],genotypes=names(genotypes)[-1],cores=as.numeric(n_cpus))
+  } else{
+    results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),significance.threshold=c("bonferroni"))
+  }
 }
 else {
-  results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),covariates=covariates,significance.threshold=c("bonferroni"))
+  if (firth_regression) {
+    results = phewas_ext(data=geno_pheno_cov, phenotypes = names(phenotypes)[-1],genotypes=names(genotypes)[-1], covariates=names(covariates)[-1],cores=as.numeric(n_cpus))
+  } else {
+    results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),covariates=covariates,significance.threshold=c("bonferroni"))
+  }
 }
+
 
 
 # Add PheWAS descriptions
