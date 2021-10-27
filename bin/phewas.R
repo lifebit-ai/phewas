@@ -60,8 +60,12 @@ names(genotypes)[1]="id"
 
 
  if (!is.null(covariate_file)) {
-   covariates = read.table(covariate_file,header=TRUE,sep=',')
- }
+  covariates = read.table(covariate_file,header=TRUE,sep=',')
+  covariate_names = names(covariates)[-1]
+  } else {
+  covariate_names=c(NA)  
+}
+
 
 
 # load the pheno data
@@ -120,6 +124,7 @@ if (firth_regression){
  }
 }
 
+print(covariate_names)
 ########################################
 ### Run the PheWAS
 ########################################
@@ -129,19 +134,11 @@ write.csv(results_d, file=paste0(outprefix,"_phewas_results.csv"), row.names=FAL
 }
 
 if (length(dim(genotypes)) > 1){
-  if (!is.null(covariate_file)) {
-    covariates = names(covariates)[-1]
-  } else {
-    covariates=c(NA)  
-  }
-  
-  if (firth_regression) {
-    results=phewas_ext(data=geno_pheno, phenotypes = names(phenotypes)[-1],genotypes=names(genotypes)[-1],covariates=covariates,cores=as.numeric(n_cpus))
+ if (firth_regression) {
+    results=phewas_ext(data=geno_pheno, phenotypes = names(phenotypes)[-1],genotypes=names(genotypes)[-1],covariates=covariate_names,cores=as.numeric(n_cpus))
   } else {
     results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus), covariates=covariates,significance.threshold=c("bonferroni"))
   }
-
-
 
 # Add PheWAS descriptions
 results_d=addPhecodeInfo(results)
