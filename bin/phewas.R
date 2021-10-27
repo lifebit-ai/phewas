@@ -111,8 +111,12 @@ if (pheno_codes == 'hpo'){
 
 if (firth_regression){
   geno_pheno <- inner_join(genotypes, phenotypes)
+  
  if (!is.null(covariate_file)) {
-   geno_pheno_cov <- inner_join(geno_pheno, covariates)
+   geno_pheno <- inner_join(geno_pheno, covariates)
+ }
+ if (nrow(geno_pheno) == 0){
+   stop("Error: Joining of genotypes, phenotypes and covariates (if using) returns an empty dataframe. Please check that the sample IDs in genotypic, phenotypic and covariate (if using) are the same.")
  }
 }
 
@@ -125,21 +129,17 @@ write.csv(results_d, file=paste0(outprefix,"_phewas_results.csv"), row.names=FAL
 }
 
 if (length(dim(genotypes)) > 1){
-  if (is.null(covariate_file)) {
+  if (!is.null(covariate_file)) {
+    covariates = names(covariates)[-1]
+  } else {
+    covariates=c(NA)  
+  }
   
   if (firth_regression) {
-    results = phewas_ext(data=geno_pheno, phenotypes = names(phenotypes)[-1],genotypes=names(genotypes)[-1],cores=as.numeric(n_cpus))
-  } else{
-    results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),significance.threshold=c("bonferroni"))
-  }
-}
-else {
-  if (firth_regression) {
-    results = phewas_ext(data=geno_pheno_cov, phenotypes = names(phenotypes)[-1],genotypes=names(genotypes)[-1], covariates=names(covariates)[-1],cores=as.numeric(n_cpus))
+    results=phewas_ext(data=geno_pheno, phenotypes = names(phenotypes)[-1],genotypes=names(genotypes)[-1],covariates=covariates,cores=as.numeric(n_cpus))
   } else {
-    results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus),covariates=covariates,significance.threshold=c("bonferroni"))
+    results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus), covariates=covariates,significance.threshold=c("bonferroni"))
   }
-}
 
 
 
