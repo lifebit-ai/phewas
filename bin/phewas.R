@@ -66,8 +66,6 @@ names(genotypes)[1]="id"
   covariate_names=c(NA)  
 }
 
-
-
 # load the pheno data
 id.code.count = read.csv(pheno_file,colClasses=c("character",'character',"integer"))
 # TODO: add option to import something like this:
@@ -124,7 +122,6 @@ if (firth_regression){
  }
 }
 
-print(covariate_names)
 ########################################
 ### Run the PheWAS
 ########################################
@@ -146,6 +143,4 @@ results_d=addPhecodeInfo(results)
 # Write results to csv ordered by significance
 all_res=results_d[order(results_d$p),]
 write.csv(all_res, file=paste0(outprefix,"_phewas_results.csv"), row.names=FALSE)
-
-
 }
