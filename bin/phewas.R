@@ -63,7 +63,9 @@ names(genotypes)[1]="id"
   covariates = read.table(covariate_file,header=TRUE,sep=',')
   covariate_names = names(covariates)[-1]
   } else {
-  covariate_names=c(NA)  
+  covariates=c(NA) 
+  covariate_names=c(NA)
+   
 }
 
 # load the pheno data
