@@ -61,14 +61,7 @@ DTable <- function(df = df,
     # Change fontsize of cell values
     formatStyle(columns    = seq_along(colnames(df)), 
                 fontSize   = "85%",
-                fontFamily = "sans-serif")   %>%
-
-    formatSignif(
-      columns = unlist(lapply(df, is.numeric)),
-      digits = 2,
-      interval = 3,
-      mark = ",",
-      dec.mark = getOption("OutDec"))                 -> fancyDatatable
+                fontFamily = "sans-serif")     -> fancyDatatable
 
   
   return(fancyDatatable)  

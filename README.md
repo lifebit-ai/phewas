@@ -28,6 +28,10 @@ nextflow run main.nf --input_phenofile "s3://lifebit-featured-datasets/pipelines
                      --pheno_codes "icd10"
 ```
 
+
+`--firth_regression` parameter can supplied to run the association tests with Firth logistic regression - this is highly recommended for phenotypes with significantly imbalanced case/control ratios.
+
+
 With colocalization analysis with binary GWAS:
 ```bash
 nextflow run main.nf --input_phenofile "s3://lifebit-featured-datasets/pipelines/phewas/cb_binary_pheno.phe" \
