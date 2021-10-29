@@ -134,9 +134,9 @@ write.csv(results_d, file=paste0(outprefix,"_phewas_results.csv"), row.names=FAL
 
 if (length(dim(genotypes)) > 1){
  if (firth_regression) {
-    results=phewas_ext(data=geno_pheno, phenotypes = names(phenotypes)[-1],genotypes=names(genotypes)[-1],covariates=covariate_names,cores=as.numeric(n_cpus))
+    results=phewas_ext(data=geno_pheno, phenotypes = names(phenotypes)[-1],genotypes=names(genotypes)[-1],method='logistf',covariates=covariate_names,cores=as.numeric(n_cpus))
   } else {
-    results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus), covariates=covariates,significance.threshold=c("bonferroni"))
+    results=phewas(phenotypes=phenotypes,genotypes=genotypes,cores=as.numeric(n_cpus), covariates=covariates,method='logistf',significance.threshold=c("bonferroni"))
   }
 
 # Add PheWAS descriptions
